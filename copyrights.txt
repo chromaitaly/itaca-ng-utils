@@ -1,0 +1,9 @@
+/*****************************************************************/
+/** <%= pkg.name %> v<%= pkg.version %> <%= grunt.template.today('dd-mm-yyyy') %>	**/
+/** <%= pkg.name %>, logos and all images are registered     	**/
+/** trademarks of <%=pkg.author.name %>.                     	**/
+/** All rights reserved.                                     	**/
+/** Registration code: <%=pkg.registration.number %>        	**/
+/** 						                                 	**/
+/**                               <%=pkg.author.name %> ® 2016	**/
+/*****************************************************************/

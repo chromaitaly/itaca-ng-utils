@@ -1,0 +1,53 @@
+{
+	"name": "chroma-utils",
+	"version": "1.0.0",
+	"description": "Various AngularJS utility services like NumberUtils, StringUtils, etc.",
+	"main": "dist/chroma-utils.min.js",
+	"repository": {
+		"type": "git",
+		"url": "git+https://scoletti@bitbucket.org/scoletti/chroma-utils.git"
+	},
+	"author": {
+		"name": "Chroma Italy Hotels srl",
+		"email": "ast-dev@chromaitaly.com",
+		"url": "http://www.chromaitaly.com"
+	},
+	"registration": {
+		"number": "21-11-2016/011058"
+	},
+	"contributors": [
+		{
+			"name": "Simone Coletti",
+			"email": "simone.coletti@chromaitaly.com"
+		}
+	],
+	"license": "MIT",
+	"homepage": "https://bitbucket.org/scoletti/chroma-utils#readme",
+	"browserslist": [
+		"> 1%",
+		"last 3 versions"
+	],
+	"devDependencies": {
+		"autoprefixer": "^7.1.5",
+		"bower": "^1.8.2",
+		"cssnano": "^3.10.0",
+		"grunt": "^0.4.5",
+		"grunt-cli": "latest",
+		"grunt-contrib-clean": "latest",
+		"grunt-contrib-copy": "latest",
+		"grunt-contrib-cssmin": "latest",
+		"grunt-contrib-htmlmin": "latest",
+		"grunt-contrib-jshint": "latest",
+		"grunt-contrib-less": "latest",
+		"grunt-contrib-uglify": "latest",
+		"grunt-ng-annotate": "latest",
+		"grunt-postcss": "^0.9.0",
+		"jit-grunt": "latest",
+		"jshint-stylish": "latest",
+		"pixrem": "^4.0.1",
+		"time-grunt": "latest"
+	},
+	"engines": {
+		"node": ">=4.2.4"
+	}
+}

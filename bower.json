@@ -1,0 +1,25 @@
+{
+	"name": "chroma-utils",
+	"author": {
+		"name": "Chroma Italy Hotels srl",
+		"email": "ast-dev@chromaitaly.com",
+		"url": "http://www.chromaitaly.com"
+	},
+	"contributors": [
+		{
+			"name": "Simone Coletti",
+			"email": "simone.coletti@chromaitaly.com"
+		}
+	],
+	"description": "Various AngularJS utility services like NumberUtils, StringUtils, etc.",
+	"main": "dist/chroma-utils.min.js",
+	"license": "MIT",
+	"homepage": "www.chromaitaly.com",
+	"ignore": [
+		"**/.*",
+		"node_modules",
+		"bower_components",
+		"test",
+		"tests"
+	]
+}
