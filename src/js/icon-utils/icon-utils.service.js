@@ -111,10 +111,10 @@
 				'service.type.popular.breakfast.continental'		: 'mdi mdi-food-fork-drink',
 				'service.type.popular.breakfast'					: 'mdi mdi-food-fork-drink',
 				'service.type.popular.breakfast.room'				: 'mdi mdi-food-fork-drink',
-
+				
 				'service.type.miscellaneous.non­smoking.throughout'	: 'mdi mdi-smoking-off',
 				'service.type.miscellaneous.non­smoking.rooms'		: 'mdi mdi-smoking-off',
-
+				
 				'service.type.popular.smoking.area'					: 'mdi mdi-smoking',
 				'service.type.popular.smoking.room'					: 'mdi mdi-smoking',
 

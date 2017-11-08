@@ -1,5 +1,6 @@
 {
 	"name": "chroma-utils",
+	"version": "1.0.0",
 	"author": {
 		"name": "Chroma Italy Hotels srl",
 		"email": "ast-dev@chromaitaly.com",
@@ -12,14 +13,21 @@
 		}
 	],
 	"description": "Various AngularJS utility services like NumberUtils, StringUtils, etc.",
-	"main": "dist/chroma-utils.min.js",
+	"main": "dist/chroma-utils.js",
 	"license": "MIT",
 	"homepage": "www.chromaitaly.com",
 	"ignore": [
-		"**/.*",
 		"node_modules",
 		"bower_components",
 		"test",
 		"tests"
-	]
+	],
+	"dependencies": {
+		"angular": "~1.6.6",
+		"angular-animate": "~1.6.6",
+		"angular-aria": "~1.6.6",
+		"angular-messages": "~1.6.6",
+		"angular-material": "~1.1.5",
+		"lodash": "latest"
+	}
 }

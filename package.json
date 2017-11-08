@@ -2,7 +2,7 @@
 	"name": "chroma-utils",
 	"version": "1.0.0",
 	"description": "Various AngularJS utility services like NumberUtils, StringUtils, etc.",
-	"main": "dist/chroma-utils.min.js",
+	"main": "dist/chroma-utils.js",
 	"repository": {
 		"type": "git",
 		"url": "git+https://scoletti@bitbucket.org/scoletti/chroma-utils.git"

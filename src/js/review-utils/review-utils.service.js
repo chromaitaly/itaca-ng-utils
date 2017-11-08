@@ -26,7 +26,7 @@
 				case 8: label = "review.score.very.good"; break;
 				case 9: label = "review.score.excellent"; break;
 			    case 10: label = 'review.score.fabulous'; break;
-			};
+			}
 				
 			return label;
 		};
