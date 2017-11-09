@@ -5,10 +5,10 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory('UrlBuilder', UrlBuilderFactory);
+	angular.module("chroma.utils").factory('UrlUtils', UrlUtilsFactory);
 	
 	/* @ngInject */
-	function UrlBuilderFactory($httpParamSerializer) {
+	function UrlUtilsFactory($httpParamSerializer) {
 		var service = {};
 	
 	    service.buildUrl = function(url, params) {
@@ -30,6 +30,17 @@
 	        params[param] = value;
 	        
 	        return service.buildUrl(url, params);
+	    };
+	    
+	    /**
+	     * Costruisce e restituisce un oggetto Location relativo all'url passato.
+	     * 
+	     */
+	    service.parseUrl = function(url) {
+	    	var parser = document.createElement("a");
+			parser.href = url;
+			
+			return parser;
 	    };
 	
 	    return service;
