@@ -103,58 +103,67 @@
 				extraPeopleObj = {};
 			}
 			
-			return $translate(['people.adult','people.adults','people.child','people.children','people.boy','people.boys','people.kid','people.kids']).then(function(translations) {
-			    var peopleSummary = '';
-			    
-				if(peopleObj.adults || extraPeopleObj.adults){
-					var standard = parseInt(peopleObj.adults || 0);
-					var extra = parseInt(extraPeopleObj.adults || 0);
-					var adults = standard + extra;
+			var guestsCount = $$service.guestsCount(peopleObj, extraPeopleObj);
+			
+			if(!guestsCount && guestsCount.total <= 0) {
+				return $translate('people.none').then(function(message){
+					return message;
+				});
+				
+			} else {			
+				return $translate(['people.adult','people.adults','people.child','people.children','people.boy','people.boys','people.kid','people.kids']).then(function(translations) {
+				    var peopleSummary = '';
+				    
+					if(peopleObj.adults || extraPeopleObj.adults){
+						var standard = parseInt(peopleObj.adults || 0);
+						var extra = parseInt(extraPeopleObj.adults || 0);
+						var adults = standard + extra;
+						
+						if(adults > 0){
+							var text = (adults < 2) ? translations['people.adult'] : translations['people.adults'];
+							peopleSummary += adults +' '+ text;
+						}
+					}
 					
-					if(adults > 0){
-						var text = (adults < 2) ? translations['people.adult'] : translations['people.adults'];
-						peopleSummary += adults +' '+ text;
+					if(peopleObj.boys || extraPeopleObj.boys){
+						var standard = parseInt(peopleObj.boys || 0);
+						var extra = parseInt(extraPeopleObj.boys || 0);
+						var boys = standard + extra;
+	
+						if(boys > 0){
+							var text = (boys < 2) ?  translations['people.boy'] : translations['people.boys'];
+							peopleSummary += peopleObj.adults || extraPeopleObj.adults ? ', ' : '';
+							peopleSummary += boys +' '+ text;
+						}
 					}
-				}
-				
-				if(peopleObj.boys || extraPeopleObj.boys){
-					var standard = parseInt(peopleObj.boys || 0);
-					var extra = parseInt(extraPeopleObj.boys || 0);
-					var boys = standard + extra;
-
-					if(boys > 0){
-						var text = (boys < 2) ?  translations['people.boy'] : translations['people.boys'];
-						peopleSummary += peopleObj.adults || extraPeopleObj.adults ? ', ' : '';
-						peopleSummary += boys +' '+ text;
-					}
-				}
-				
-				if(peopleObj.children || extraPeopleObj.children){
-					var standard = parseInt(peopleObj.children || 0);
-					var extra = parseInt(extraPeopleObj.children || 0);
-					var children = standard + extra;
 					
-					if(children > 0){
-						var text = (children < 2) ?  translations['people.child'] : translations['people.children'];
-						peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys ? ', ' : '';
-						peopleSummary += children +' '+ text;
+					if(peopleObj.children || extraPeopleObj.children){
+						var standard = parseInt(peopleObj.children || 0);
+						var extra = parseInt(extraPeopleObj.children || 0);
+						var children = standard + extra;
+						
+						if(children > 0){
+							var text = (children < 2) ?  translations['people.child'] : translations['people.children'];
+							peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys ? ', ' : '';
+							peopleSummary += children +' '+ text;
+						}
 					}
-				}
-				
-				if(peopleObj.kids || extraPeopleObj.kids){
-					var standard = parseInt(peopleObj.kids || 0);
-					var extra = parseInt(extraPeopleObj.kids || 0);
-					var kids = standard + extra;
 					
-					if(kids > 0){
-						var text = (kids < 2) ? translations['people.kid'] : translations['people.kids'];
-						peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys || peopleObj.children || extraPeopleObj.children ? ', ' : '';
-						peopleSummary += kids +' '+ text;
+					if(peopleObj.kids || extraPeopleObj.kids){
+						var standard = parseInt(peopleObj.kids || 0);
+						var extra = parseInt(extraPeopleObj.kids || 0);
+						var kids = standard + extra;
+						
+						if(kids > 0){
+							var text = (kids < 2) ? translations['people.kid'] : translations['people.kids'];
+							peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys || peopleObj.children || extraPeopleObj.children ? ', ' : '';
+							peopleSummary += kids +' '+ text;
+						}
 					}
-				}
-				
-				return peopleSummary.toLowerCase();			
-			 });
+					
+					return peopleSummary.toLowerCase();			
+				 });
+			}
 		};
 		
 		$$service.extraPeople = function(otherBeds) {
