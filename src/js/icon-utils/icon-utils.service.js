@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory("IconUtils", IconUtilsFactory);
+	angular.module("itaca.utils").factory("IconUtils", IconUtilsFactory);
 	
 	/* @ngInject */
 	function IconUtilsFactory(){

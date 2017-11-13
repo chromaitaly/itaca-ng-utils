@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory('DateUtils', DateUtilsFactory);
+	angular.module("itaca.utils").factory('DateUtils', DateUtilsFactory);
 	
 	/* @ngInject */
 	function DateUtilsFactory($log, moment, REGEXP, AppOptions){ 

@@ -4,7 +4,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory('ProfileUtils', ProfileUtilsFactory);
+	angular.module("itaca.utils").factory('ProfileUtils', ProfileUtilsFactory);
 	
 	/* @ngInject */
 	function ProfileUtilsFactory($rootScope) {

@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory('StringUtils', StringUtilsFactory);
+	angular.module("itaca.utils").factory('StringUtils', StringUtilsFactory);
 	
 	/* @ngInject */
 	function StringUtilsFactory(){

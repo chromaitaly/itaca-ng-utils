@@ -1,7 +1,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").constant("REGEXP", REGEXP);
+	angular.module("itaca.utils").constant("REGEXP", REGEXP);
 	
 	var REGEXP = {
 		username: /^[a-z0-9_.-@]{3,32}$/,

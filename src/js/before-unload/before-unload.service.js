@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory('_beforeUnload', BeforeUnloadFactory);
+	angular.module("itaca.utils").factory('_beforeUnload', BeforeUnloadFactory);
 	
 	/* @ngInject */
 	function BeforeUnloadFactory($rootScope, $window) {

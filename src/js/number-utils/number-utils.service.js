@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory('NumberUtils', NumberUtilsFactory);
+	angular.module("itaca.utils").factory('NumberUtils', NumberUtilsFactory);
 
 	/* @ngInject */
 	function NumberUtilsFactory(){

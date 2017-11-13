@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory('jsonDateInterceptor', JsonDateInterceptorFactory);
+	angular.module("itaca.utils").factory('jsonDateInterceptor', JsonDateInterceptorFactory);
 	
 	/* @ngInject */
 	function JsonDateInterceptorFactory(DateUtils) {

@@ -5,12 +5,12 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").value("RESERVATION", {rooms: []});
+	angular.module("itaca.utils").value("RESERVATION", {rooms: []});
 	
-	angular.module("chroma.utils").factory('ReservationUtils', ReservationUtilsFatory);
+	angular.module("itaca.utils").factory('ReservationUtils', ReservationUtilsFactory);
 	
 	/* @ngInject */
-	function ReservationUtilsFatory($translate, NumberUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION){
+	function ReservationUtilsFactory($translate, NumberUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION){
 		var $$service = {};
 		
 		$$service.clearReservation = function(reservation, keepSearchParams) {
@@ -115,49 +115,37 @@
 				    var peopleSummary = '';
 				    
 					if(peopleObj.adults || extraPeopleObj.adults){
-						var standard = parseInt(peopleObj.adults || 0);
-						var extra = parseInt(extraPeopleObj.adults || 0);
-						var adults = standard + extra;
+						var adults = parseInt(peopleObj.adults || 0) + parseInt(extraPeopleObj.adults || 0);
 						
 						if(adults > 0){
-							var text = (adults < 2) ? translations['people.adult'] : translations['people.adults'];
-							peopleSummary += adults +' '+ text;
+							peopleSummary += adults +' '+ (adults < 2) ? translations['people.adult'] : translations['people.adults'];
 						}
 					}
 					
 					if(peopleObj.boys || extraPeopleObj.boys){
-						var standard = parseInt(peopleObj.boys || 0);
-						var extra = parseInt(extraPeopleObj.boys || 0);
-						var boys = standard + extra;
+						var boys = parseInt(peopleObj.boys || 0) + parseInt(extraPeopleObj.boys || 0);
 	
 						if(boys > 0){
-							var text = (boys < 2) ?  translations['people.boy'] : translations['people.boys'];
 							peopleSummary += peopleObj.adults || extraPeopleObj.adults ? ', ' : '';
-							peopleSummary += boys +' '+ text;
+							peopleSummary += boys +' '+ (boys < 2) ?  translations['people.boy'] : translations['people.boys'];
 						}
 					}
 					
 					if(peopleObj.children || extraPeopleObj.children){
-						var standard = parseInt(peopleObj.children || 0);
-						var extra = parseInt(extraPeopleObj.children || 0);
-						var children = standard + extra;
+						var children = parseInt(peopleObj.children || 0) + parseInt(extraPeopleObj.children || 0);
 						
 						if(children > 0){
-							var text = (children < 2) ?  translations['people.child'] : translations['people.children'];
 							peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys ? ', ' : '';
-							peopleSummary += children +' '+ text;
+							peopleSummary += children +' '+ (children < 2) ?  translations['people.child'] : translations['people.children'];
 						}
 					}
 					
 					if(peopleObj.kids || extraPeopleObj.kids){
-						var standard = parseInt(peopleObj.kids || 0);
-						var extra = parseInt(extraPeopleObj.kids || 0);
-						var kids = standard + extra;
+						var kids = parseInt(peopleObj.kids || 0) + parseInt(extraPeopleObj.kids || 0);
 						
 						if(kids > 0){
-							var text = (kids < 2) ? translations['people.kid'] : translations['people.kids'];
 							peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys || peopleObj.children || extraPeopleObj.children ? ', ' : '';
-							peopleSummary += kids +' '+ text;
+							peopleSummary += kids +' '+ (kids < 2) ? translations['people.kid'] : translations['people.kids'];
 						}
 					}
 					
@@ -2025,7 +2013,7 @@
 			return String(pan).replace(/-/g, "").replace(/.*(\d{4})$/, "**** **** **** $1");
 		};
 		
-		$$service.prettyCardPan = function(pan) {
+		$$service.beautifyCardPan = function(pan) {
 			return String(pan).replace(/-/g, "").replace(/(.{4})/g, "$1 ").replace(/-([^-]*)$/, "$1");
 		};
 		

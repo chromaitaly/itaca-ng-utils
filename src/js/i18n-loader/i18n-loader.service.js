@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").provider('i18nLoader', i18nLoaderProvider);
+	angular.module("itaca.utils").provider('i18nLoader', i18nLoaderProvider);
 	
 	function i18nLoaderProvider() {
 		var $$i18nResources = "/api/rs/public/i18n";

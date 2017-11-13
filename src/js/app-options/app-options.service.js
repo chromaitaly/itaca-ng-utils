@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").provider('AppOptions', AppOptionsProvider);
+	angular.module("itaca.utils").provider('AppOptions', AppOptionsProvider);
 	
 	function AppOptionsProvider() {
 		var $$options = {defaultLang: "en", page: {title: "Home"}};
@@ -23,7 +23,7 @@
 			}
 		};
 
-		this.$get = function() {
+		this.$get = /* @ngInject */ function() {
 			return new AppOptions($$options);
 		};
 	}

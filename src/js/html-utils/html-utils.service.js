@@ -1,7 +1,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory('HtmlUtils', HtmlUtilsFactory);
+	angular.module("itaca.utils").factory('HtmlUtils', HtmlUtilsFactory);
 	
 	/* @ngInject */
 	function HtmlUtilsFactory($window){

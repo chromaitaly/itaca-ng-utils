@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory('sceStrategy', SceStrategyFactory);
+	angular.module("itaca.utils").factory('sceStrategy', SceStrategyFactory);
 	
 	/* @ngInject */
 	function SceStrategyFactory($sce) { 

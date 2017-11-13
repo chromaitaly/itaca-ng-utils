@@ -23,6 +23,7 @@ module.exports = function(grunt) {
 				devel : true,
 				shadow : false,
 				expr : true,
+				validthis : true,
 				globals : {
 					angular : true,
 					_ : true
@@ -78,8 +79,8 @@ module.exports = function(grunt) {
 		}
 	});
 
-	grunt.registerTask('build', [ 'clean', 'jshint', 'ngAnnotate', 'uglify',
-			'clean:tmp' ]);
+	grunt.registerTask('build',
+			[ 'clean', 'ngAnnotate', 'uglify', 'clean:tmp' ]);
 
 	grunt.registerTask('default', [ 'build' ]);
 };

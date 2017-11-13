@@ -5,5 +5,5 @@
 /** All rights reserved.                                     	**/
 /** Registration code: <%=pkg.registration.number %>        	**/
 /** 						                                 	**/
-/**                               <%=pkg.author.name %> ® 2016	**/
+/**                               <%=pkg.author.name %> ® 2017	**/
 /*****************************************************************/

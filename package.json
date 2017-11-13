@@ -1,11 +1,11 @@
 {
-	"name": "chroma-utils",
+	"name": "itaca-ng-utils",
 	"version": "1.0.0",
 	"description": "Various AngularJS utility services like NumberUtils, StringUtils, etc.",
-	"main": "dist/chroma-utils.js",
+	"main": "dist/itaca-ng-utils.js",
 	"repository": {
 		"type": "git",
-		"url": "git+https://scoletti@bitbucket.org/scoletti/chroma-utils.git"
+		"url": "git+https://scoletti@bitbucket.org/scoletti/itaca-ng-utils.git"
 	},
 	"author": {
 		"name": "Chroma Italy Hotels srl",
@@ -22,7 +22,7 @@
 		}
 	],
 	"license": "MIT",
-	"homepage": "https://bitbucket.org/scoletti/chroma-utils#readme",
+	"homepage": "https://bitbucket.org/scoletti/itaca-ng-utils#readme",
 	"browserslist": [
 		"> 1%",
 		"last 3 versions"

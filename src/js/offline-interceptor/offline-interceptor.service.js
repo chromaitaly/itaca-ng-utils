@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory('offlineInterceptor', OfflineInterceptorFactory);
+	angular.module("itaca.utils").factory('offlineInterceptor', OfflineInterceptorFactory);
 	
 	/* @ngInject */
 	function OfflineInterceptorFactory($q, $log) {

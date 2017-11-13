@@ -4,7 +4,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory('ContactUtils', ContactUtilsFactory);
+	angular.module("itaca.utils").factory('ContactUtils', ContactUtilsFactory);
 	
 	/* @ngInject */
 	function ContactUtilsFactory() {		

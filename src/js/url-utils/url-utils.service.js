@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("chroma.utils").factory('UrlUtils', UrlUtilsFactory);
+	angular.module("itaca.utils").factory('UrlUtils', UrlUtilsFactory);
 	
 	/* @ngInject */
 	function UrlUtilsFactory($httpParamSerializer) {
