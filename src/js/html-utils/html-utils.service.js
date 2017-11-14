@@ -5,9 +5,9 @@
 	
 	/* @ngInject */
 	function HtmlUtilsFactory($window){
-		var service = {};
+		var $$service = {};
 		
-		service.isElementInView = function (el, fullyInView) {
+		$$service.isElementInView = function (el, fullyInView) {
 			var element = angular.element(el)[0];
 			if(!element){
 				return false;
@@ -25,7 +25,7 @@
 		    }
 		};
 		
-		service.getScrollParent = function(el) {
+		$$service.getScrollParent = function(el) {
 			var element = angular.element(el)[0];
 			
 			if (element === null) {
@@ -36,11 +36,36 @@
 				return element;
 			
 			} else {
-				return service.getScrollParent(element.parentNode);
+				return $$service.getScrollParent(element.parentNode);
 			}
 		};
 		
-		return service;
+		/**
+		 * Compila (tramite lo scope passato o quello del parent) ed aggiunge l'elemento specificato al parent (o, se non esiste, al body) 
+		 * come primo (isFirstChild == true) o ultimo figlio, e ne restituisce l'elemento stesso.
+		 * 
+		 */
+		$$service.addElement = function(el, scope, parent, isFirstChild) {
+			var parentEl = !parent ? document.body : angular.isElement(parent) ? (parent.length ? parent[0] : parent) : document.querySelector(parent);
+			
+			if (parentEl) {
+				var newElement = $compile(el)(scope || angular.element(parentEl).scope());
+				
+				if (isFirstChild) {
+					parentEl.insertBefore(newElement, parentEl.firstChild);					
+				
+				} else {
+					parentEl.append(newElement);
+				}
+				
+				return angular.element(newElement);
+				
+			} else {
+				return false;
+			}
+		};
+		
+		return $$service;
 	}
 
 })();

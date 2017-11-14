@@ -1,30 +1,29 @@
 /**
  * Servizio per i telefoni
  */
-
 (function() {
 	'use strict';
 	
 	angular.module("itaca.utils").provider('PhoneUtils', PhoneUtilsProvider);
 	
 	function PhoneUtilsProvider() {
-		var $dataUrl = "/phone-prefixes.json", $dataObj;
+		var $$dataUrl = "/phone-prefixes.json", $$dataObj;
 
 		this.setData = function(data) {
 			if (_.isPlainObject(data)) {
-				$dataObj = data;
+				$$dataObj = data;
 			
 			} else if (_.isString(data)) {
-				$dataUrl = data;
+				$$dataUrl = data;
 			}
 		};
 
-		this.$get = /* @ngInject */ function($resource, $q, $http, libphonenumber) {
-			return new PhoneUtils($resource, $q, $http, libphonenumber, $dataObj || $dataUrl);
+		this.$get = /* @ngInject */ function($q, $http) {
+			return new PhoneUtils($q, $http, $$dataObj || $$dataUrl);
 		};
 	}
 
-	function PhoneUtils($resource, $q, $http, libphonenumber, data) {			
+	function PhoneUtils($q, $http, data) {			
 		var $$service = this;
 		
 		// init prefixes
@@ -156,5 +155,8 @@
 			
 			return phoneObj;
 		};
+		
+		// init
+		this.init();
 	}
 })();

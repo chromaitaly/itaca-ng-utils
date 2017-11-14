@@ -35,7 +35,6 @@
 		"angular-translate-storage-cookie": "~2.16.0",
 		"angular-dynamic-locale": "~0.1.32",
 		"angular-local-storage": "~0.7.1",
-		"lodash": "latest",
-		"google-libphonenumber": "latest"
+		"lodash": "latest"
 	}
 }
