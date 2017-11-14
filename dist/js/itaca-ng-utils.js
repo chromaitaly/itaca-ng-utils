@@ -1,12 +1,29 @@
 /*****************************************************************/
-/** itaca-ng-utils v1.0.0 13-11-2017	**/
+/** itaca-ng-utils v1.0.0 14-11-2017	**/
 /** itaca-ng-utils, logos and all images are registered     	**/
 /** trademarks of Chroma Italy Hotels srl.                     	**/
 /** All rights reserved.                                     	**/
 /** Registration code: 21-11-2016/011058        	**/
 /** 						                                 	**/
-/**                               Chroma Italy Hotels srl ® 2016	**/
+/**                               Chroma Italy Hotels srl ® 2017	**/
 /*****************************************************************/
+(function() {
+    "use strict";
+    angular.module("itaca.utils", [ "ngMaterial", "itaca.services", "pascalprecht.translate", "tmh.dynamicLocale", "LocalStorageModule" ]);
+    angular.module("itaca.utils").config([ "$windowProvider", "$translateProvider", "tmhDynamicLocaleProvider", function($windowProvider, $translateProvider, tmhDynamicLocaleProvider) {
+        var defaultLocale = ($windowProvider.$get().navigator.language || $windowProvider.$get().navigator.userLanguage).split("-")[0].toLowerCase();
+        $translateProvider.useLoader("i18nLoader");
+        $translateProvider.preferredLanguage(defaultLocale);
+        $translateProvider.useCookieStorage();
+        $translateProvider.useMissingTranslationHandlerLog();
+        $translateSanitizationProvider.addStrategy("sce", "sceStrategy");
+        $translateProvider.useSanitizeValueStrategy("sce");
+        tmhDynamicLocaleProvider.localeLocationPattern("/resources/public/js/i18n/angular-locale_{{locale}}.js");
+        tmhDynamicLocaleProvider.useCookieStorage();
+        tmhDynamicLocaleProvider.defaultLocale(defaultLocale);
+    } ]);
+})();
+
 (function() {
     "use strict";
     angular.module("itaca.utils").provider("AppOptions", AppOptionsProvider);
@@ -91,24 +108,6 @@
         };
         return {};
     }
-})();
-
-(function() {
-    "use strict";
-    angular.module("itaca.utils", [ "ngMaterial", "pascalprecht.translate", "tmh.dynamicLocale", "LocalStorageModule" ]);
-    angular.module("chroma.components").config([ "$windowProvider", "$translateProvider", "tmhDynamicLocaleProvider", "localStorageServiceProvider", function($windowProvider, $translateProvider, tmhDynamicLocaleProvider, localStorageServiceProvider) {
-        var defaultLocale = ($windowProvider.$get().navigator.language || $windowProvider.$get().navigator.userLanguage).split("-")[0].toLowerCase();
-        $translateProvider.useLoader("i18nLoader");
-        $translateProvider.preferredLanguage(defaultLocale);
-        $translateProvider.useCookieStorage();
-        $translateProvider.useMissingTranslationHandlerLog();
-        $translateSanitizationProvider.addStrategy("sce", "sceStrategy");
-        $translateProvider.useSanitizeValueStrategy("sce");
-        tmhDynamicLocaleProvider.localeLocationPattern("/resources/public/js/i18n/angular-locale_{{locale}}.js");
-        tmhDynamicLocaleProvider.useCookieStorage();
-        tmhDynamicLocaleProvider.defaultLocale(defaultLocale);
-        localStorageServiceProvider.setPrefix("itaca-ai");
-    } ]);
 })();
 
 (function() {
@@ -769,6 +768,104 @@
 
 (function() {
     "use strict";
+    angular.module("itaca.utils").provider("PhoneUtils", PhoneUtilsProvider);
+    function PhoneUtilsProvider() {
+        var $dataUrl = "/phone-prefixes.json", $dataObj;
+        this.setData = function(data) {
+            if (_.isPlainObject(data)) {
+                $dataObj = data;
+            } else if (_.isString(data)) {
+                $dataUrl = data;
+            }
+        };
+        this.$get = [ "$resource", "$q", "$http", "libphonenumber", function($resource, $q, $http, libphonenumber) {
+            return new PhoneUtils($resource, $q, $http, libphonenumber, $dataObj || $dataUrl);
+        } ];
+    }
+    function PhoneUtils($resource, $q, $http, libphonenumber, data) {
+        var $$service = this;
+        this.init = function() {
+            $$service.all();
+        };
+        this.all = function() {
+            var deferred = $q.defer();
+            if (_.isPlainObject(data)) {
+                $$service.prefixes = data;
+                deferred.resolve($$service.prefixes);
+            } else if (_.isString(data)) {
+                $http.get(data).then(function(response) {
+                    $$service.prefixes = response.data.content;
+                    deferred.resolve($$service.prefixes);
+                }, function(response) {
+                    deferred.reject("Error loading phone prefixes");
+                });
+            }
+            return deferred.promise;
+        };
+        this.get = function(value, type) {
+            if (_.isNil(value)) {
+                return null;
+            }
+            if (_.isNil(type)) {
+                type = "code";
+            }
+            var deferred = $q.defer();
+            $$service.all().then(function(data) {
+                var phoneObj = _.find(data, function(o) {
+                    return o[type] == value;
+                });
+                deferred.resolve(phoneObj);
+            }, function(error) {
+                deferred.reject(error);
+            });
+            return deferred.promise;
+        };
+        this.compile = function(prefix, number) {
+            return (prefix || "") + (number || "");
+        };
+        this.decompile = function(phone) {
+            if (!phone) {
+                return null;
+            }
+            var deferred = $q.defer();
+            var phoneObj = $$service.decompileSimple(phone);
+            if (phoneObj.prefix) {
+                $$service.get(phoneObj.prefix, "dial_code").then(function(data) {
+                    phoneObj.prefix = data;
+                    deferred.resolve(phoneObj);
+                }, function(error) {
+                    deferred.resolve(phoneObj);
+                });
+            } else {
+                deferred.resolve(phoneObj);
+            }
+            return deferred.promise;
+        };
+        this.decompileSimple = function(phone) {
+            if (!phone) {
+                return null;
+            }
+            var phoneObj = {};
+            if (!_.isEmpty($$service.prefixes)) {
+                var prefix = _.find($$service.prefixes, function(prefix) {
+                    return phone.startsWith(prefix.dial_code);
+                });
+                if (prefix && prefix.dial_code) {
+                    phoneObj.prefix = _.trim(prefix.dial_code);
+                    phoneObj.number = _.trim(phone.substring(phone.indexOf(prefix.dial_code) + prefix.dial_code.length));
+                } else {
+                    phoneObj.number = phone;
+                }
+            } else {
+                phoneObj.number = phone;
+            }
+            return phoneObj;
+        };
+    }
+})();
+
+(function() {
+    "use strict";
     ProfileUtilsFactory.$inject = [ "$rootScope" ];
     angular.module("itaca.utils").factory("ProfileUtils", ProfileUtilsFactory);
     function ProfileUtilsFactory($rootScope) {
@@ -808,12 +905,12 @@
 
 (function() {
     "use strict";
-    ReservationUtilsFatory.$inject = [ "$translate", "NumberUtils", "ObjectUtils", "DateUtils", "LocalStorage", "RESERVATION" ];
+    ReservationUtilsFactory.$inject = [ "$translate", "NumberUtils", "ObjectUtils", "DateUtils", "LocalStorage", "RESERVATION" ];
     angular.module("itaca.utils").value("RESERVATION", {
         rooms: []
     });
-    angular.module("itaca.utils").factory("ReservationUtils", ReservationUtilsFatory);
-    function ReservationUtilsFatory($translate, NumberUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION) {
+    angular.module("itaca.utils").factory("ReservationUtils", ReservationUtilsFactory);
+    function ReservationUtilsFactory($translate, NumberUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION) {
         var $$service = {};
         $$service.clearReservation = function(reservation, keepSearchParams) {
             if (keepSearchParams) {
