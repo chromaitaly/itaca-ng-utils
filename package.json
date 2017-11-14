@@ -5,7 +5,7 @@
 	"main": "dist/itaca-ng-utils.js",
 	"repository": {
 		"type": "git",
-		"url": "git+https://scoletti@bitbucket.org/scoletti/itaca-ng-utils.git"
+		"url": "git+https://scoletti@bitbucket.org/chromaitaly/itaca-ng-utils.git"
 	},
 	"author": {
 		"name": "Chroma Italy Hotels srl",
@@ -22,7 +22,7 @@
 		}
 	],
 	"license": "MIT",
-	"homepage": "https://bitbucket.org/scoletti/itaca-ng-utils#readme",
+	"homepage": "https://bitbucket.org/chromaitaly/itaca-ng-utils#readme",
 	"browserslist": [
 		"> 1%",
 		"last 3 versions"
