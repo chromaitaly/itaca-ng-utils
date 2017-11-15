@@ -14,8 +14,8 @@
 			"email": "simone.coletti@chromaitaly.com"
 		}
 	],
-	"license": "MIT",
-	"homepage": "https://bitbucket.org/chromaitaly/itaca-ng-utils#readme",
+	"license": "GPL-3.0",
+	"homepage": "https://github.com/chromaitaly/itaca-ng-utils#readme",
 	"ignore": [
 		"**/.*",
 		"node_modules",
