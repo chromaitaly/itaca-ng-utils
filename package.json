@@ -1,7 +1,7 @@
 {
 	"name": "itaca-ng-utils",
 	"version": "1.0.0",
-	"description": "Various AngularJS utility services like NumberUtils, StringUtils, etc.",
+	"description": "Various AngularJS utility services like NumberUtils, StringUtils and many more.",
 	"main": "dist/itaca-ng-utils.js",
 	"repository": {
 		"type": "git",
