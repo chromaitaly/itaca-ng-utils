@@ -94,6 +94,19 @@
 			}
 		};
 		
+		$$service.normalizePeople = function(people) {
+			if (!_.isPlainObject(people)) {
+				people = {};
+			}
+			
+			people.adults = people.adults || 0;
+			people.boys = people.boys || 0;
+			people.children = people.children || 0;
+			people.kids = people.kids || 0;
+			
+			return people;		
+		};
+		
 		$$service.peopleSummary = function(peopleObj, extraPeopleObj) {
 			if (!peopleObj) {
 				peopleObj = {};
