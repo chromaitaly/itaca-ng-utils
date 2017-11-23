@@ -5,8 +5,6 @@
 (function() {
 	'use strict';
 	
-	angular.module("itaca.utils").value("RESERVATION", {rooms: []});
-	
 	angular.module("itaca.utils").factory('ReservationUtils', ReservationUtilsFactory);
 	
 	/* @ngInject */
@@ -25,8 +23,8 @@
 			return LocalStorage.setReservation(RESERVATION);
 		};
 		
-		$$service.loadLastReservation = function() {
-			var lastHotelRes = LocalStorage.getReservation();
+		$$service.loadLastReservation = function(hotelId, guestId) {
+			var lastHotelRes = LocalStorage.getReservation(hotelId, guestId);
 			
 			if (!lastHotelRes) {
 				lastHotelRes = _.mapValues(RESERVATION, function(value) {
@@ -37,7 +35,7 @@
 					return undefined;
 				});
 				
-				lastHotelRes.people = {adults: 1};
+//				lastHotelRes.people = {adults: 1};
 			}
 			
 			_.assignIn(RESERVATION, lastHotelRes);
@@ -45,10 +43,9 @@
 			DateUtils.convertDateStringsToDates(RESERVATION);
 			
 			if (RESERVATION && RESERVATION.checkin && RESERVATION.checkout && moment(RESERVATION.checkin).isBefore(DateUtils.absoluteMoment(), "days")) {
-				// se il checkin della prenotazione salvata è precendente ad oggi,
-				// la azzero
+				// se il checkin della prenotazione salvata è precendente ad oggi, la azzero
 				RESERVATION = {rooms:[]};
-				$$service.storeLastReservation();
+				LocalStorage.removeReservation(hotelId, guestId);
 			}
 			
 			return lastHotelRes;
