@@ -112,7 +112,7 @@
 		/**
 		 * Restituisce un boolean se l'orario è nel range
 		 */
-		service.rangeTimeChecker = function(time, startTime, endTime) {
+		service.timeRangeCheck = function(time, startTime, endTime) {
 			var arrivalTime = moment.utc(time).seconds(0).milliseconds(0);
 			
 			var originalStart = moment.utc(startTime);

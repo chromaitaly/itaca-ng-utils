@@ -8,7 +8,7 @@
 	angular.module("itaca.utils").factory('ReservationUtils', ReservationUtilsFactory);
 	
 	/* @ngInject */
-	function ReservationUtilsFactory($translate, NumberUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION){
+	function ReservationUtilsFactory($translate, NumberUtils, AmountUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION){
 		var $$service = {};
 		
 		$$service.clearReservation = function(reservation, keepSearchParams) {
@@ -34,17 +34,13 @@
 					
 					return undefined;
 				});
-				
-//				lastHotelRes.people = {adults: 1};
 			}
 			
-			_.assignIn(RESERVATION, lastHotelRes);
+			DateUtils.convertDateStringsToDates(lastHotelRes);
 			
-			DateUtils.convertDateStringsToDates(RESERVATION);
-			
-			if (RESERVATION && RESERVATION.checkin && RESERVATION.checkout && moment(RESERVATION.checkin).isBefore(DateUtils.absoluteMoment(), "days")) {
+			if (lastHotelRes && lastHotelRes.checkin && lastHotelRes.checkout && moment(lastHotelRes.checkin).isBefore(DateUtils.absoluteMoment(), "days")) {
 				// se il checkin della prenotazione salvata è precendente ad oggi, la azzero
-				RESERVATION = {rooms:[]};
+				service.clearReservation(lastHotelRes);
 				LocalStorage.removeReservation(hotelId, guestId);
 			}
 			
@@ -122,13 +118,13 @@
 				
 			} else {			
 				return $translate(['people.adult','people.adults','people.child','people.children','people.boy','people.boys','people.kid','people.kids']).then(function(translations) {
-				    var peopleSummary = '';
+var peopleSummary = '';
 				    
 					if(peopleObj.adults || extraPeopleObj.adults){
 						var adults = parseInt(peopleObj.adults || 0) + parseInt(extraPeopleObj.adults || 0);
 						
 						if(adults > 0){
-							peopleSummary += adults +' '+ (adults < 2) ? translations['people.adult'] : translations['people.adults'];
+							peopleSummary += adults +' '+ (adults < 2 ? translations['people.adult'] : translations['people.adults']);
 						}
 					}
 					
@@ -137,7 +133,7 @@
 	
 						if(boys > 0){
 							peopleSummary += peopleObj.adults || extraPeopleObj.adults ? ', ' : '';
-							peopleSummary += boys +' '+ (boys < 2) ?  translations['people.boy'] : translations['people.boys'];
+							peopleSummary += boys +' '+ (boys < 2 ? translations['people.boy'] : translations['people.boys']);
 						}
 					}
 					
@@ -146,7 +142,7 @@
 						
 						if(children > 0){
 							peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys ? ', ' : '';
-							peopleSummary += children +' '+ (children < 2) ?  translations['people.child'] : translations['people.children'];
+							peopleSummary += children +' '+ (children < 2 ? translations['people.child'] : translations['people.children']);
 						}
 					}
 					
@@ -155,18 +151,21 @@
 						
 						if(kids > 0){
 							peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys || peopleObj.children || extraPeopleObj.children ? ', ' : '';
-							peopleSummary += kids +' '+ (kids < 2) ? translations['people.kid'] : translations['people.kids'];
+							peopleSummary += kids +' '+ (kids < 2 ? translations['people.kid'] : translations['people.kids']);
 						}
 					}
 					
-					return peopleSummary.toLowerCase();			
+					return peopleSummary.toLowerCase();
 				 });
 			}
 		};
 		
 		$$service.extraPeople = function(otherBeds) {
 			var people = {
-				adults: 0			
+				adults: 0,
+				boys: 0,
+				children: 0,
+				kids: 0
 			};
 
 			_.forEach(otherBeds, function(otherBed) {
@@ -446,7 +445,7 @@
 			};
 		};
 		
-		$$service.peopleAvailabilityArrays = function(basePeople, currentPeople, maxCount) {
+		$$service.peopleAvailability = function(basePeople, currentPeople, maxCount) {
 			currentPeople = currentPeople || {adults: 0, boys: 0, children: 0, kids: 0};
 			var currentCount = $$service.guestsCount(currentPeople).standard;
 			var currentAv = parseInt(maxCount || 0) - currentCount;
@@ -492,44 +491,98 @@
 			return peopleAvailability;
 		};
 		
+		$$service.$generateRoomIncludedServices = function(roomType, peopleObj, nights, initialServices) {
+			var includedServices = [];
+			_.forEach(_.filter(roomType.services, ['bookability', 'INCLUDED']), function(s) {
+				includedServices.push($$service.serviceSold(s, peopleObj, nights, 1));
+			});
+			
+			return _.unionBy(initialServices || [], includedServices, "service.id");
+		};
 		
-		$$service.roomSold = function(rate, roomType, hotelVat, peopleObj, extraPeopleObj, beds, otherBeds, services){
-			if(!rate || !roomType || !hotelVat){
+		$$service.$generateRoomIncludedBeds = function(roomType, peopleObj, nights, vatRate, initialBeds) {
+			var beds = initialBeds || [], count = 0;
+			var remainingPeople = $$service.normalizePeople(angular.copy(peopleObj));
+			
+			_.forEach(roomType.beds, function(bed){
+				// se sono stati inseriti tutti i letti interrompo
+				if (roomType.bedCount <= count) {
+					return false;
+				}
+				
+				var n = 0;
+
+				do {
+					// letti di questo tipo già aggiunti
+					var added = _.filter(beds, function(b) {
+						return b.bed.type == bed.type;
+					});
+					
+					n = _.size(added);
+
+					// se sono stati già inseriti tutti i letti di questo tipo vado al prossimo
+					if (n >= bed.count) {
+						return;
+					}
+					
+					var newBed = angular.copy(bed);
+					newBed.uid = NumberUtils.uniqueNumber();
+					
+					// genero le persone da inserire nel letto
+					var people = $$service.peopleByMax(remainingPeople, newBed.people, newBed.maxPerson);					
+					// inserisco il letto nella lista
+					beds.push($$service.bedSold(newBed, people, nights, vatRate));
+					count++;
+					
+					// aggiorno persone rimanenti
+					remainingPeople.adults = remainingPeople.adults - (people.adults || 0);
+					remainingPeople.boys = remainingPeople.boys - (people.boys || 0);
+					remainingPeople.children = remainingPeople.children - (people.children || 0);
+					remainingPeople.kids = remainingPeople.kids - (people.kids || 0);
+					
+				} while (n < bed.count);
+			});
+			
+			return beds;
+		};
+		
+		$$service.roomSold = function(roomType, rateSold, vatRate, peopleObj, extraPeopleObj, beds, otherBeds, services, status){
+			if(!rateSold || !roomType || !vatRate){
 				return {};
 			}
 			
-			if(!peopleObj){
-				peopleObj = {adults: 1};
-			}
-			var selectedPeople = peopleObj.adults >= roomType.guestsCount.standard ? roomType.guestsCount.standard : peopleObj.adults;
+			var nights = DateUtils.absoluteMoment(rateSold.startDate).diff(DateUtils.absoluteMoment(rateSold.endDate), 'days');
 			
-			
-			if(!extraPeopleObj){
-				extraPeopleObj = {adults: 0};
+			var guestsCount = $$service.guestsCount(peopleObj, extraPeopleObj);
+			if (!guestsCount.standard) {
+				peopleObj = {adults: 1, boys: 0, children: 0, kids: 0};
+				guestsCount = $$service.guestsCount(peopleObj, extraPeopleObj);
 			}
-			var selectedExtraPeople = extraPeopleObj.adults >= roomType.guestsCount.extra ? roomType.guestsCount.extra : extraPeopleObj.adults;
+			
+			if (!guestsCount.extra) {
+				extraPeopleObj = $$service.peopleByBeds(otherBeds);
+				guestsCount = $$service.guestsCount(peopleObj, extraPeopleObj);
+			}
 			
 			var roomSold = {
 				type: roomType,
-				totalRate: rate,
-				cancellationPolicy: rate.cancellationPolicy ? rate.cancellationPolicy : null,
-				noShowPolicy: rate.noShowPolicy ? rate.noShowPolicy : null,
-				status: "CONFIRMED",
-				services: services || [],
-				beds: beds || [],
-				otherBeds: otherBeds || [],
+				totalRate: rateSold,
+				// deprecato
+//				cancellationPolicy: rateSold.cancellationPolicy ? rateSold.cancellationPolicy : null,
+				// deprecato
+//				noShowPolicy: rateSold.noShowPolicy ? rateSold.noShowPolicy : null,
+				status: status || "CONFIRMED",
 				people: peopleObj,
 				extraPeople: extraPeopleObj,
+				guestsCount: guestsCount,
+				services: $$service.$generateRoomIncludedServices(roomType, peopleObj, nights, services),
+				beds: $$service.$generateRoomIncludedBeds(roomType, peopleObj, nights, vatRate, beds),
+				otherBeds: otherBeds || [],
 				creationDate: new Date()
 			};
 			
-			roomSold.guestsCount = $$service.guestsCount(selectedPeople, selectedExtraPeople);
-			
 			/* includo l'iva pagata nell'amount */
-			var vat = (100 + hotelVat)/ 100;
-			var taxable = rate.amount.finalAmount/ vat;
-			roomSold.totalRate.amount.vatAmount = NumberUtils.fixedDecimals((taxable * hotelVat)/ 100);
-			roomSold.totalRate.amount.vatRate = hotelVat;
+			AmountUtils.calculateVat(roomSold.totalRate.amount, vatRate);
 			
 			return roomSold;
 		};
@@ -773,7 +826,7 @@
 			
 			var _self = this;
 			
-			var nigths = DateUtils.absoluteMoment(res.checkout).diff(DateUtils.absoluteMoment(res.checkin), 'days');
+			var nights = DateUtils.absoluteMoment(res.checkout).diff(DateUtils.absoluteMoment(res.checkin), 'days');
 			
 			var initialPrice = 0;
 			var finalPrice = 0;

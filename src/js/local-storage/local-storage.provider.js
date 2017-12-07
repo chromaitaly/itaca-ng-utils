@@ -76,11 +76,13 @@
 				return false;
 			}
 			
-			var storage = localStorageService.get($$service.$$reservationStorageName);
+			var storage = localStorageService.get(service.RESERVATION_STORAGE_NAME);
 			var hotelStorage = storage[hotelId];
 			
 			if (hotelStorage) {
 				hotelStorage[guestId || "anonymous"] = undefined;
+				storage[hotelId] = hotelStorage;
+				localStorageService.set(service.RESERVATION_STORAGE_NAME, storage);
 				return true;
 			}
 			

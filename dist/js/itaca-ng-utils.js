@@ -1482,7 +1482,7 @@
                 kids: kids
             };
         };
-        $$service.peopleAvailabilityArrays = function(basePeople, currentPeople, maxCount) {
+        $$service.peopleAvailability = function(basePeople, currentPeople, maxCount) {
             currentPeople = currentPeople || {
                 adults: 0,
                 boys: 0,
@@ -1762,7 +1762,7 @@
                 return;
             }
             var _self = this;
-            var nigths = DateUtils.absoluteMoment(res.checkout).diff(DateUtils.absoluteMoment(res.checkin), "days");
+            var nights = DateUtils.absoluteMoment(res.checkout).diff(DateUtils.absoluteMoment(res.checkin), "days");
             var initialPrice = 0;
             var finalPrice = 0;
             var initialCancelPrice = 0;
