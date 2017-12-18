@@ -40,7 +40,7 @@
 			
 			if (lastHotelRes && lastHotelRes.checkin && lastHotelRes.checkout && moment(lastHotelRes.checkin).isBefore(DateUtils.absoluteMoment(), "days")) {
 				// se il checkin della prenotazione salvata è precendente ad oggi, la azzero
-				service.clearReservation(lastHotelRes);
+				$$service.clearReservation(lastHotelRes);
 				LocalStorage.removeReservation(hotelId, guestId);
 			}
 			
@@ -118,7 +118,7 @@
 				
 			} else {			
 				return $translate(['people.adult','people.adults','people.child','people.children','people.boy','people.boys','people.kid','people.kids']).then(function(translations) {
-var peopleSummary = '';
+				    var peopleSummary = '';
 				    
 					if(peopleObj.adults || extraPeopleObj.adults){
 						var adults = parseInt(peopleObj.adults || 0) + parseInt(extraPeopleObj.adults || 0);
@@ -132,7 +132,7 @@ var peopleSummary = '';
 						var boys = parseInt(peopleObj.boys || 0) + parseInt(extraPeopleObj.boys || 0);
 	
 						if(boys > 0){
-							peopleSummary += peopleObj.adults || extraPeopleObj.adults ? ', ' : '';
+							peopleSummary += (peopleObj.adults || extraPeopleObj.adults) ? ', ' : '';
 							peopleSummary += boys +' '+ (boys < 2 ? translations['people.boy'] : translations['people.boys']);
 						}
 					}
@@ -141,7 +141,7 @@ var peopleSummary = '';
 						var children = parseInt(peopleObj.children || 0) + parseInt(extraPeopleObj.children || 0);
 						
 						if(children > 0){
-							peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys ? ', ' : '';
+							peopleSummary += (peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys) ? ', ' : '';
 							peopleSummary += children +' '+ (children < 2 ? translations['people.child'] : translations['people.children']);
 						}
 					}
@@ -150,7 +150,7 @@ var peopleSummary = '';
 						var kids = parseInt(peopleObj.kids || 0) + parseInt(extraPeopleObj.kids || 0);
 						
 						if(kids > 0){
-							peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys || peopleObj.children || extraPeopleObj.children ? ', ' : '';
+							peopleSummary += (peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys || peopleObj.children || extraPeopleObj.children) ? ', ' : '';
 							peopleSummary += kids +' '+ (kids < 2 ? translations['people.kid'] : translations['people.kids']);
 						}
 					}
@@ -160,7 +160,7 @@ var peopleSummary = '';
 			}
 		};
 		
-		$$service.extraPeople = function(otherBeds) {
+		$$service.peopleByBeds = function(beds) {
 			var people = {
 				adults: 0,
 				boys: 0,
@@ -168,30 +168,30 @@ var peopleSummary = '';
 				kids: 0
 			};
 
-			_.forEach(otherBeds, function(otherBed) {
-				if (!otherBed.people) return;
+			_.forEach(beds, function(bed) {
+				if (!bed.people) return;
 					
 				// persone extra
-				var otherBedPeople = otherBed.people;
+				var bedPeople = bed.people;
 				
 				// adulti
-				if(otherBedPeople.adults){
-					people.adults = people.adults ? parseInt(people.adults) + parseInt(otherBedPeople.adults) : parseInt(otherBedPeople.adults); 
+				if(bedPeople.adults){
+					people.adults = people.adults ? parseInt(people.adults) + parseInt(bedPeople.adults) : parseInt(bedPeople.adults); 
 				}
 				
 				// ragazzi
-				if (otherBedPeople.boys) {
-					people.boys = people.boys ? parseInt(people.boys) + parseInt(otherBedPeople.boys) : parseInt(otherBedPeople.boys);  
+				if (bedPeople.boys) {
+					people.boys = people.boys ? parseInt(people.boys) + parseInt(bedPeople.boys) : parseInt(bedPeople.boys);  
 				}
 				
 				// bambini
-				if (otherBedPeople.children) {
-					people.children = people.children ? parseInt(people.children) + parseInt(otherBedPeople.children) : parseInt(otherBedPeople.children);  
+				if (bedPeople.children) {
+					people.children = people.children ? parseInt(people.children) + parseInt(bedPeople.children) : parseInt(bedPeople.children);  
 				}
 				
 				// neonati
-				if (otherBedPeople.kids) {
-					people.kids = people.kids ? parseInt(people.kids) + parseInt(otherBedPeople.kids) : parseInt(otherBedPeople.kids);
+				if (bedPeople.kids) {
+					people.kids = people.kids ? parseInt(people.kids) + parseInt(bedPeople.kids) : parseInt(bedPeople.kids);
 				}
 			});
 			
@@ -312,6 +312,10 @@ var peopleSummary = '';
 			};
 		};
 		
+		$$service.totalPeopleByRooms = function(rooms, checkBeds) {
+			return $$service.totalPeople($$service.peopleByRooms(rooms, checkBeds), $$service.extraPeopleByRooms(rooms, checkBeds));
+		};
+		
 		$$service.peopleByRooms = function(rooms, checkBeds) {
 			var people = {
 				adults: 0,
@@ -349,7 +353,20 @@ var peopleSummary = '';
 				people.children = parseInt(roomPeople.children) ? people.children + parseInt(roomPeople.children) : people.children;
 				// neonati
 				people.kids = parseInt(roomPeople.kids) ? people.kids + parseInt(roomPeople.kids) : people.kids;
-				
+			});
+			
+			return people;
+		};
+		
+		$$service.extraPeopleByRooms = function(rooms, checkBeds) {
+			var people = {
+				adults: 0,
+				boys: 0,
+				children: 0,
+				kids: 0
+			};
+			
+			_.forEach(rooms, function(room, index, collection) {
 				// persone extra
 				var roomExtraPeople = angular.copy(room.extraPeople || {});
 				
@@ -400,11 +417,11 @@ var peopleSummary = '';
 			}
 			
 			if (!basePeople) {
-				return angular.copy(maxPeople);
+				return maxCount > 0 ? $$service.peopleByMax(maxPeople, {adults: maxCount}, maxCount) : angular.copy(maxPeople);
 			}
 			
 			if (!maxPeople) {
-				return angular.copy(basePeople);
+				return maxCount > 0 ? $$service.peopleByMax(basePeople, {adults: maxCount}, maxCount) : angular.copy(basePeople);
 			}
 			
 			var max = maxCount;
@@ -446,7 +463,8 @@ var peopleSummary = '';
 		};
 		
 		$$service.peopleAvailability = function(basePeople, currentPeople, maxCount) {
-			currentPeople = currentPeople || {adults: 0, boys: 0, children: 0, kids: 0};
+			basePeople = $$service.normalizePeople(basePeople);
+			currentPeople = $$service.normalizePeople(currentPeople);
 			var currentCount = $$service.guestsCount(currentPeople).standard;
 			var currentAv = parseInt(maxCount || 0) - currentCount;
 			
@@ -491,6 +509,49 @@ var peopleSummary = '';
 			return peopleAvailability;
 		};
 		
+		$$service.bedsAvailability = function(maxBeds, currentBeds, maxCount) {
+			var bedsAvailability = [];
+			
+			// inserisco i letti già aggiunti
+			_.forEach(currentBeds, function(bedSold) {
+				var newBed = angular.copy(bedSold);
+				newBed.uid = newBed.uid || NumberUtils.uniqueNumber();
+				newBed.$$available = false;
+				newBed.$$blocked = false;
+				newBed.$$editing = false;
+				// inserisco il letto nella lista
+				bedsAvailability.push(newBed);
+			});
+			
+			// inserisco tutti gli altri letti mancanti
+			_.forEach(maxBeds, function(bed){
+				var n = 0;
+				do {
+					// letti di questo tipo già aggiunti
+					var added = _.filter(bedsAvailability, function(b) {
+						return (b.bed || b).type == bed.type;
+					});
+					
+					n = _.size(added);
+
+					// se sono stati già inseriti tutti i letti di questo tipo vado al prossimo
+					if (n >= bed.count) {
+						return;
+					}
+					
+					var newBed = angular.copy(bed);
+					newBed.uid = NumberUtils.uniqueNumber();
+					newBed.$$available = true;
+					newBed.$$blocked = _.size(currentBeds) >= maxCount;
+					
+					// inserisco il letto nella lista
+					bedsAvailability.push(newBed);
+				} while (n < bed.count);
+			});
+			
+			return bedsAvailability;
+		};
+		
 		$$service.$generateRoomIncludedServices = function(roomType, peopleObj, nights, initialServices) {
 			var includedServices = [];
 			_.forEach(_.filter(roomType.services, ['bookability', 'INCLUDED']), function(s) {
@@ -502,11 +563,12 @@ var peopleSummary = '';
 		
 		$$service.$generateRoomIncludedBeds = function(roomType, peopleObj, nights, vatRate, initialBeds) {
 			var beds = initialBeds || [], count = 0;
-			var remainingPeople = $$service.normalizePeople(angular.copy(peopleObj));
+			var remainingPeople =  $$service.normalizePeople(angular.copy(peopleObj));
+			var guestsCount = $$service.guestsCount(remainingPeople);
 			
 			_.forEach(roomType.beds, function(bed){
-				// se sono stati inseriti tutti i letti interrompo
-				if (roomType.bedCount <= count) {
+				// se sono stati inseriti tutte le persone o tutti i letti, interrompo
+				if (guestsCount.standard <= 0 || roomType.bedCount <= count) {
 					return false;
 				}
 				
@@ -539,8 +601,11 @@ var peopleSummary = '';
 					remainingPeople.boys = remainingPeople.boys - (people.boys || 0);
 					remainingPeople.children = remainingPeople.children - (people.children || 0);
 					remainingPeople.kids = remainingPeople.kids - (people.kids || 0);
+
+					// conteggio persone rimanenti
+					guestsCount = $$service.guestsCount(remainingPeople)
 					
-				} while (n < bed.count);
+				} while (guestsCount.standard > 0 && n < bed.count);
 			});
 			
 			return beds;
@@ -717,11 +782,11 @@ var peopleSummary = '';
 		
 		$$service.updateServiceSoldPrice = function(serviceSold, peopleObj, nights, count, force) {
 			var serviceDays = nights;
-			if (oldService.startDate && oldService.endDate) {
-				serviceDays = DateUtils.absoluteMoment(oldService.endDate).diff(DateUtils.absoluteMoment(serviceSold.startDate), 'days');
+			if (serviceSold.startDate && serviceSold.endDate) {
+				serviceDays = DateUtils.absoluteMoment(serviceSold.endDate).diff(DateUtils.absoluteMoment(serviceSold.startDate), 'days');
 			}
 			var oldService = force ? angular.copy(serviceSold) : null;
-			_.assign(serviceSold, $$service.serviceSold(serviceSold.service, peopleObj, serviceDays, count));
+			_.assign(serviceSold, $$service.serviceSold(serviceSold.service, peopleObj || serviceSold.people, serviceDays, count || serviceSold.count));
 			serviceSold.amount = oldService ? oldService.amount : serviceSold.amount;
 			// ricalcolo l'iva
 			serviceSold.amount.vatAmount = NumberUtils.vatAmount(serviceSold.amount.finalAmount, serviceSold.amount.vatRate);
@@ -731,6 +796,8 @@ var peopleSummary = '';
 			if (!bed) {
 				return {};
 			}
+			
+			peopleObj = $$service.normalizePeople(peopleObj);
 			
 			var amount = {
 				type: "PRICE",
@@ -768,7 +835,7 @@ var peopleSummary = '';
 			
 			return {
 				bed: bed,
-				people: peopleObj || {},
+				people: peopleObj,
 				amount: amount,
 				status: "CONFIRMED"
 			};
@@ -780,7 +847,7 @@ var peopleSummary = '';
 				bedNights = DateUtils.absoluteMoment(bedSold.endDate).diff(DateUtils.absoluteMoment(bedSold.startDate), 'days');
 			}		
 			var oldBed = force ? angular.copy(bedSold) : null;
-			_.assign(bedSold, $$service.bedSold(bedSold.bed, peopleObj, bedNights, vatRate));
+			_.assign(bedSold, $$service.bedSold(bedSold.bed, peopleObj || bedSold.people, bedNights, vatRate || bedSold.amount.vatRate));
 			bedSold.amount = oldBed ? oldBed.amount : bedSold.amount;
 			// ricalcolo l'iva
 			bedSold.amount.vatAmount = NumberUtils.vatAmount(bedSold.amount.finalAmount, bedSold.amount.vatRate);
@@ -1272,7 +1339,7 @@ var peopleSummary = '';
 				initialAmount : room.totalRate.amount.initialAmount,
 				finalAmount : room.totalRate.amount.finalAmount,
 				servicesAmount : 0,
-				bedsAmount : 0,
+				bedsAmount : 0
 			};
 					
 			// prezzo servizi camera
