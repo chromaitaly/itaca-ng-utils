@@ -12,18 +12,17 @@
 				return toAdd;
 			}
 			
-			if (!toAdd || toAdd.amount) {
+			if (!toAdd || toAdd) {
 				return amount;
 			}
 			
 			var total = angular.copy(amount);
 			
-			total.amount = total.amount || {};
-			total.amount.initialAmount = NumberUtils.fixedDecimals(total.amount.initialAmount || 0);
-			total.amount.finalAmount = NumberUtils.fixedDecimals(total.amount.finalAmount || 0);
+			total.initialAmount = NumberUtils.fixedDecimals(total.initialAmount || 0);
+			total.finalAmount = NumberUtils.fixedDecimals(total.finalAmount || 0);
 			
-			total.amount.initialAmount += NumberUtils.fixedDecimals(toAdd.amount.initialAmount);
-			total.amount.finalAmount += NumberUtils.fixedDecimals(toAdd.amount.finalAmount);
+			total.initialAmount += NumberUtils.fixedDecimals(toAdd.initialAmount);
+			total.finalAmount += NumberUtils.fixedDecimals(toAdd.finalAmount);
 			
 			return total;
 		};
@@ -33,18 +32,17 @@
 				return toSubtract;
 			}
 			
-			if (!toSubtract || !toSubtract.amount) {
+			if (!toSubtract || !toSubtract) {
 				return amount;
 			}
 			
 			var total = angular.copy(amount);
 			
-			total.amount = total.amount || {};
-			total.amount.initialAmount = NumberUtils.fixedDecimals(total.amount.initialAmount || 0);
-			total.amount.finalAmount = NumberUtils.fixedDecimals(total.amount.finalAmount || 0);
+			total.initialAmount = NumberUtils.fixedDecimals(total.initialAmount || 0);
+			total.finalAmount = NumberUtils.fixedDecimals(total.finalAmount || 0);
 			
-			total.amount.initialAmount -= NumberUtils.fixedDecimals(toSubtract.amount.initialAmount);
-			total.amount.finalAmount -= NumberUtils.fixedDecimals(toSubtract.amount.finalAmount);
+			total.initialAmount -= NumberUtils.fixedDecimals(toSubtract.initialAmount);
+			total.finalAmount -= NumberUtils.fixedDecimals(toSubtract.finalAmount);
 			
 			return total;
 		};

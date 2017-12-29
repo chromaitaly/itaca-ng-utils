@@ -81,7 +81,7 @@
 			};
 		};
 		
-		service.serviceIcon = function(){
+		service.serviceIcons = function(){
 			return {
 				'service.type.technology.console'					: 'mdi mdi-gamepad-variant',
 				'service.type.technology.games'						: 'mdi mdi-gamepad-variant',
@@ -100,6 +100,7 @@
 				'service.type.miscellaneous.air.conditioning'		: 'mdi mdi-air-conditioner',
 				'service.type.room.air.conditioning'				: 'mdi mdi-air-conditioner',
 				'service.type.miscellaneous.heating'				: 'mdi mdi-air-conditioner',
+				'service.type.room.washing.machine'					: 'mdi mdi-washing-machine',
 
 				'service.type.transport.parking.secured'			: 'mdi mdi-parking',
 				'service.type.transport.parking.street'				: 'mdi mdi-parking',
@@ -111,16 +112,25 @@
 				'service.type.popular.breakfast.continental'		: 'mdi mdi-food-fork-drink',
 				'service.type.popular.breakfast'					: 'mdi mdi-food-fork-drink',
 				'service.type.popular.breakfast.room'				: 'mdi mdi-food-fork-drink',
-				
+
 				'service.type.miscellaneous.non­smoking.throughout'	: 'mdi mdi-smoking-off',
 				'service.type.miscellaneous.non­smoking.rooms'		: 'mdi mdi-smoking-off',
-				
+
 				'service.type.popular.smoking.area'					: 'mdi mdi-smoking',
 				'service.type.popular.smoking.room'					: 'mdi mdi-smoking',
 
 				'service.type.popular.wifi.room'					: 'mdi mdi-wifi',
 				'service.type.popular.wifi.all'						: 'mdi mdi-wifi',
 				'service.type.popular.internet.point'				: 'mdi mdi-wifi',
+				
+				'service.type.food.champagne'						: 'mdi mdi-glass-flute',
+				'service.type.food.prosecco'						: 'mdi mdi-glass-flute',
+				'service.type.food.wine.red'						: 'mdi mdi-glass-tulip',
+				'service.type.food.wine.white'						: 'mdi mdi-glass-tulip',
+				'service.type.food.homemade.cake'					: 'mdi mdi-cake',
+				'service.type.food.water'							: 'mdi mdi-cup-water',
+				'service.room.type.welcomeCoffee'					: 'mdi mdi-coffee',
+				'service.type.food.cookies'							: 'mdi mdi-cookie'
 			};
 		};
 		
@@ -137,14 +147,24 @@
 		
 		service.portalIcons = function(){
 			return {
-				'PHONE'		: 'mdi mdi-phone material-icons',
-				'EMAIL'		: 'mdi mdi-email material-icons',
+				'PHONE'		: 'channel-icon channel-chroma',
+				'EMAIL'		: 'channel-icon channel-chroma',
 				'PORTAL'	: 'channel-icon channel-chroma',
 				'BOOKING'	: 'channel-icon channel-booking',
 				'EXPEDIA'	: 'channel-icon channel-expedia',
 				'VENERE'	: 'channel-icon channel-venere',
 				'AIRBNB'	: 'channel-icon channel-airbnb',
 				'AGODA'		: 'channel-icon channel-agoda',
+				'AMADEUS'	: 'channel-icon channel-amadeus',
+				'SABRE'		: 'channel-icon channel-sabre',
+				'GALILEO'	: 'channel-icon channel-galileo',
+				'WORLDSPAN'	: 'channel-icon channel-worldspan',
+				'DHISCO'	: 'channel-icon channel-dhisco',
+				'EDREAMS'	: 'channel-icon channel-edreams',
+				'GOVOYAGES'	: 'channel-icon channel-govoyages',
+				'OPODO'		: 'channel-icon channel-opodo',
+				'TRAVELLINK': 'channel-icon channel-travellink',
+				'LILIGO'	: 'channel-icon channel-liligo',
 				'OTHER'		: 'mdi mdi-web material-icons',
 			};
 		};
