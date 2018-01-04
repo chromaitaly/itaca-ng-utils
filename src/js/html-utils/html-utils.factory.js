@@ -4,7 +4,7 @@
 	angular.module("itaca.utils").factory('HtmlUtils', HtmlUtilsFactory);
 	
 	/* @ngInject */
-	function HtmlUtilsFactory($window){
+	function HtmlUtilsFactory($window, $compile){
 		var $$service = {};
 		
 		$$service.isElementInView = function (el, fullyInView) {
@@ -42,23 +42,26 @@
 		
 		/**
 		 * Compila (tramite lo scope passato o quello del parent) ed aggiunge l'elemento specificato al parent (o, se non esiste, al body) 
-		 * come primo (isFirstChild == true) o ultimo figlio, e ne restituisce l'elemento stesso.
+		 * come primo (isFirstChild == true) o ultimo figlio, e ne restituisce il relativo scope.
 		 * 
 		 */
 		$$service.addElement = function(el, scope, parent, isFirstChild) {
 			var parentEl = !parent ? document.body : angular.isElement(parent) ? (parent.length ? parent[0] : parent) : document.querySelector(parent);
 			
 			if (parentEl) {
-				var newElement = $compile(el)(scope || angular.element(parentEl).scope());
+				parentEl = angular.element(parentEl);
+				var newElScope = angular.merge(parentEl.scope().$new(true), scope);
+				
+				var newElement = $compile(el)(newElScope);
 				
 				if (isFirstChild) {
-					parentEl.insertBefore(newElement, parentEl.firstChild);					
+					parentEl.prepend(newElement);					
 				
 				} else {
 					parentEl.append(newElement);
 				}
 				
-				return angular.element(newElement);
+				return newElScope;
 				
 			} else {
 				return false;

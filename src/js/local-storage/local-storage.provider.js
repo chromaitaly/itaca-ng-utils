@@ -62,7 +62,7 @@
 			}
 			
 			var storage = localStorageService.get($$service.$$reservationStorageName);
-			var hotelStorage = storage[hotelId];
+			var hotelStorage = storage ? storage[hotelId] : null;
 			
 			if (hotelStorage) {
 				return hotelStorage[guestId || "anonymous"];
@@ -77,7 +77,7 @@
 			}
 			
 			var storage = localStorageService.get(service.RESERVATION_STORAGE_NAME);
-			var hotelStorage = storage[hotelId];
+			var hotelStorage = storage ? storage[hotelId] : null;
 			
 			if (hotelStorage) {
 				hotelStorage[guestId || "anonymous"] = undefined;
