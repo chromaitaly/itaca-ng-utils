@@ -58,6 +58,19 @@
 			return service.fixedDecimals(discountType == "PERCENTAGE" ? price / 100 * discount : 100 * discount / price);
 		};
 		
+		/**
+		 * Restituisce l'importo finale ottenuto applicando lo sconto specificato (discount, discountType) 
+		 * al prezzo passato (price). Se discountType non è specificato, di
+		 * default è PRICE.
+		 */
+		service.applyDiscount = function(price, discount, discountType) {
+			discountType = discountType || "PRICE";
+			
+			var discountAmount = discountType == "PRICE" ? parseFloat(discount) : service.calculateDiscount(price, discount, discountType);
+			
+			return service.fixedDecimals(price - discountAmount);
+		};
+		
 		service.uniqueNumber = function() {
 		    var date = Date.now();
 	

@@ -79,6 +79,7 @@
 				
 				weekdays.push({
 					label: value, 
+					labelShort: moment.weekdaysShort(true, index),
 					day: currentDay.day(), 
 					weekday: currentDay.weekday(), 
 					isoWeekday: currentDay.isoWeekday()
