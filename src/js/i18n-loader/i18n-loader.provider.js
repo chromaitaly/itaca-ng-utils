@@ -51,7 +51,8 @@
 		        		return result.data;
 		        		
 		        	}, function () {
-		        		$log.error("Error getting translations from url: " + langUrl + " - lang: " + options.key);
+		        		$log.error("Error getting translations from url: " + langUrl + " - lang: " + options.key + 
+		        				" - error: " + response.message);
 		        		return $q.reject(options.key);
 		        	});
         		

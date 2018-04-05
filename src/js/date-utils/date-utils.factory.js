@@ -42,13 +42,15 @@
 		    maxDeepLevel = maxDeepLevel ? maxDeepLevel : 10;
 		    currentLevel = currentLevel ? currentLevel : 0; 
 		    
+		    var $$pattern = REGEXP && REGEXP.dateString ? REGEXP.dateString : /^(\d{4}|\+\d{6})(?:-(\d{2})(?:-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2})\.(\d{1,})(Z|([\-+])((\d{2}):(\d{2})|(\d{4})))?)?)?)?$/;
+		    
 		    for (var key in input) {
 		        if (!input.hasOwnProperty(key)){ continue;}
 
 		        var value = input[key];
 		        var match;
 		        // Check for string properties which look like dates.
-		        if (typeof value === "string" && (match = value.match(REGEXP.dateString))) {
+		        if (typeof value === "string" && (match = value.match($$pattern))) {
 		        	var data = match[0];
 		        	
 		        	try {

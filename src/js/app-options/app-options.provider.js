@@ -32,7 +32,7 @@
 		var $$service = this;
 		
 		this.$init = function() {
-			if (_.isArray(options)) {
+			if (_.isPlainObject(options)) {
 				_.forEach(options, function(value, key) {
 					$$service.addOption(key, value);
 				});
