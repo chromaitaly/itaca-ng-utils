@@ -7,7 +7,7 @@
 	angular.module("itaca.utils").provider('PhoneUtils', PhoneUtilsProvider);
 	
 	function PhoneUtilsProvider() {
-		var $$dataUrl = "/phone-prefixes.json", $$dataObj;
+		var $$dataUrl = "/resources/public/js/data/json/phone-prefixes.json", $$dataObj;
 
 		this.setData = function(data) {
 			if (_.isPlainObject(data)) {

@@ -7,7 +7,7 @@
 	angular.module("itaca.utils").provider('LocaleUtils', LocaleUtilsProvider);
 	
 	function LocaleUtilsProvider() {
-		var $$dataUrl = "/locales.json", $$dataObj;
+		var $$dataUrl = "/resources/public/js/data/json/locales.json", $$dataObj;
 
 		this.setData = function(data) {
 			if (_.isPlainObject(data)) {
