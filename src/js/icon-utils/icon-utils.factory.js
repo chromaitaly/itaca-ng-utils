@@ -134,7 +134,7 @@
 			};
 		};
 		
-		service.transfersIcon = function(){
+		service.transferIcons = function(){
 			return {
 				'CAR': 'flaticon-car-black-side-view-pointing-left',
 				'LIMOUSINE': 'flaticon-sedan-car-model',

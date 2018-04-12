@@ -38,6 +38,58 @@
 
 (function() {
     "use strict";
+    AmountUtilsFactory.$inject = [ "NumberUtils" ];
+    angular.module("itaca.utils").factory("AmountUtils", AmountUtilsFactory);
+    function AmountUtilsFactory(NumberUtils) {
+        var $$service = {};
+        $$service.sum = function(amount, toAdd) {
+            if (!amount) {
+                return toAdd;
+            }
+            if (!toAdd || toAdd) {
+                return amount;
+            }
+            var total = angular.copy(amount);
+            total.initialAmount = NumberUtils.fixedDecimals(total.initialAmount || 0);
+            total.finalAmount = NumberUtils.fixedDecimals(total.finalAmount || 0);
+            total.initialAmount += NumberUtils.fixedDecimals(toAdd.initialAmount);
+            total.finalAmount += NumberUtils.fixedDecimals(toAdd.finalAmount);
+            return total;
+        };
+        $$service.subtract = function(amount, toSubtract) {
+            if (!amount) {
+                return toSubtract;
+            }
+            if (!toSubtract || !toSubtract) {
+                return amount;
+            }
+            var total = angular.copy(amount);
+            total.initialAmount = NumberUtils.fixedDecimals(total.initialAmount || 0);
+            total.finalAmount = NumberUtils.fixedDecimals(total.finalAmount || 0);
+            total.initialAmount -= NumberUtils.fixedDecimals(toSubtract.initialAmount);
+            total.finalAmount -= NumberUtils.fixedDecimals(toSubtract.finalAmount);
+            return total;
+        };
+        $$service.calculateDiscount = function(amount) {
+            if (!amount) {
+                return null;
+            }
+            amount.discountAmount = NumberUtils.fixedDecimals(amount.initialAmount - amount.finalAmount);
+            amount.discountRate = NumberUtils.calculateDiscount(amount.initialAmount, amount.discountAmount);
+        };
+        $$service.calculateVat = function(amount, vatRate) {
+            if (!amount) {
+                return null;
+            }
+            amount.vatRate = NumberUtils.fixedDecimals(vatRate);
+            amount.vatAmount = NumberUtils.vatAmount(amount.finalAmount, amount.vatRate);
+        };
+        return $$service;
+    }
+})();
+
+(function() {
+    "use strict";
     angular.module("itaca.utils").provider("AppOptions", AppOptionsProvider);
     function AppOptionsProvider() {
         var $$options = {
@@ -63,7 +115,7 @@
     function AppOptions(options) {
         var $$service = this;
         this.$init = function() {
-            if (_.isArray(options)) {
+            if (_.isPlainObject(options)) {
                 _.forEach(options, function(value, key) {
                     $$service.addOption(key, value);
                 });
@@ -201,13 +253,14 @@
             }
             maxDeepLevel = maxDeepLevel ? maxDeepLevel : 10;
             currentLevel = currentLevel ? currentLevel : 0;
+            var $$pattern = REGEXP && REGEXP.dateString ? REGEXP.dateString : /^(\d{4}|\+\d{6})(?:-(\d{2})(?:-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2})\.(\d{1,})(Z|([\-+])((\d{2}):(\d{2})|(\d{4})))?)?)?)?$/;
             for (var key in input) {
                 if (!input.hasOwnProperty(key)) {
                     continue;
                 }
                 var value = input[key];
                 var match;
-                if (typeof value === "string" && (match = value.match(REGEXP.dateString))) {
+                if (typeof value === "string" && (match = value.match($$pattern))) {
                     var data = match[0];
                     try {
                         var milliseconds = Date.parse(data);
@@ -232,6 +285,7 @@
                 var currentDay = moment().day(value);
                 weekdays.push({
                     label: value,
+                    labelShort: moment.weekdaysShort(true, index),
                     day: currentDay.day(),
                     weekday: currentDay.weekday(),
                     isoWeekday: currentDay.isoWeekday()
@@ -251,7 +305,7 @@
             m = m.length < 2 ? "0" + m : m;
             return (offsetSeconds > 0 ? "+" : "-") + h + m;
         };
-        service.rangeTimeChecker = function(time, startTime, endTime) {
+        service.timeRangeCheck = function(time, startTime, endTime) {
             var arrivalTime = moment.utc(time).seconds(0).milliseconds(0);
             var originalStart = moment.utc(startTime);
             var start = moment(arrivalTime).hours(originalStart.hours()).minutes(originalStart.minutes()).seconds(0).milliseconds(0);
@@ -312,9 +366,9 @@
 
 (function() {
     "use strict";
-    HtmlUtilsFactory.$inject = [ "$window" ];
+    HtmlUtilsFactory.$inject = [ "$window", "$compile" ];
     angular.module("itaca.utils").factory("HtmlUtils", HtmlUtilsFactory);
-    function HtmlUtilsFactory($window) {
+    function HtmlUtilsFactory($window, $compile) {
         var $$service = {};
         $$service.isElementInView = function(el, fullyInView) {
             var element = angular.element(el)[0];
@@ -345,13 +399,15 @@
         $$service.addElement = function(el, scope, parent, isFirstChild) {
             var parentEl = !parent ? document.body : angular.isElement(parent) ? parent.length ? parent[0] : parent : document.querySelector(parent);
             if (parentEl) {
-                var newElement = $compile(el)(scope || angular.element(parentEl).scope());
+                parentEl = angular.element(parentEl);
+                var newElScope = angular.merge(parentEl.scope().$new(true), scope);
+                var newElement = $compile(el)(newElScope);
                 if (isFirstChild) {
-                    parentEl.insertBefore(newElement, parentEl.firstChild);
+                    parentEl.prepend(newElement);
                 } else {
                     parentEl.append(newElement);
                 }
-                return angular.element(newElement);
+                return newElScope;
             } else {
                 return false;
             }
@@ -398,7 +454,7 @@
                 }, options.$http)).then(function(result) {
                     return result.data;
                 }, function() {
-                    $log.error("Error getting translations from url: " + langUrl + " - lang: " + options.key);
+                    $log.error("Error getting translations from url: " + langUrl + " - lang: " + options.key + " - error: " + response.message);
                     return $q.reject(options.key);
                 });
                 promises.push(promise);
@@ -600,7 +656,7 @@
                 BANCOMAT: "pf pf-card"
             };
         };
-        service.serviceIcon = function() {
+        service.serviceIcons = function() {
             return {
                 "service.type.technology.console": "mdi mdi-gamepad-variant",
                 "service.type.technology.games": "mdi mdi-gamepad-variant",
@@ -615,6 +671,7 @@
                 "service.type.miscellaneous.air.conditioning": "mdi mdi-air-conditioner",
                 "service.type.room.air.conditioning": "mdi mdi-air-conditioner",
                 "service.type.miscellaneous.heating": "mdi mdi-air-conditioner",
+                "service.type.room.washing.machine": "mdi mdi-washing-machine",
                 "service.type.transport.parking.secured": "mdi mdi-parking",
                 "service.type.transport.parking.street": "mdi mdi-parking",
                 "service.type.transport.parking.accessible": "mdi mdi-parking",
@@ -629,10 +686,18 @@
                 "service.type.popular.smoking.room": "mdi mdi-smoking",
                 "service.type.popular.wifi.room": "mdi mdi-wifi",
                 "service.type.popular.wifi.all": "mdi mdi-wifi",
-                "service.type.popular.internet.point": "mdi mdi-wifi"
+                "service.type.popular.internet.point": "mdi mdi-wifi",
+                "service.type.food.champagne": "mdi mdi-glass-flute",
+                "service.type.food.prosecco": "mdi mdi-glass-flute",
+                "service.type.food.wine.red": "mdi mdi-glass-tulip",
+                "service.type.food.wine.white": "mdi mdi-glass-tulip",
+                "service.type.food.homemade.cake": "mdi mdi-cake",
+                "service.type.food.water": "mdi mdi-cup-water",
+                "service.room.type.welcomeCoffee": "mdi mdi-coffee",
+                "service.type.food.cookies": "mdi mdi-cookie"
             };
         };
-        service.transfersIcon = function() {
+        service.transferIcons = function() {
             return {
                 CAR: "flaticon-car-black-side-view-pointing-left",
                 LIMOUSINE: "flaticon-sedan-car-model",
@@ -644,14 +709,24 @@
         };
         service.portalIcons = function() {
             return {
-                PHONE: "mdi mdi-phone material-icons",
-                EMAIL: "mdi mdi-email material-icons",
+                PHONE: "channel-icon channel-chroma",
+                EMAIL: "channel-icon channel-chroma",
                 PORTAL: "channel-icon channel-chroma",
                 BOOKING: "channel-icon channel-booking",
                 EXPEDIA: "channel-icon channel-expedia",
                 VENERE: "channel-icon channel-venere",
                 AIRBNB: "channel-icon channel-airbnb",
                 AGODA: "channel-icon channel-agoda",
+                AMADEUS: "channel-icon channel-amadeus",
+                SABRE: "channel-icon channel-sabre",
+                GALILEO: "channel-icon channel-galileo",
+                WORLDSPAN: "channel-icon channel-worldspan",
+                DHISCO: "channel-icon channel-dhisco",
+                EDREAMS: "channel-icon channel-edreams",
+                GOVOYAGES: "channel-icon channel-govoyages",
+                OPODO: "channel-icon channel-opodo",
+                TRAVELLINK: "channel-icon channel-travellink",
+                LILIGO: "channel-icon channel-liligo",
                 OTHER: "mdi mdi-web material-icons"
             };
         };
@@ -851,9 +926,113 @@
 
 (function() {
     "use strict";
+    angular.module("itaca.services").provider("LocalStorage", LocalStorageProvider);
+    function LocalStorageProvider() {
+        var $$reservationStorageName = "X-ITACA-RSV", $$quoteStorageName = "X-ITACA-QUOTE";
+        this.setReservationStorageName = function(reservationStorageName) {
+            if (!_.isEmpty(reservationStorageName)) {
+                $$reservationStorageName = reservationStorageName;
+            }
+        };
+        this.setQuoteStorageName = function(quoteStorageName) {
+            if (!_.isEmpty(quoteStorageName)) {
+                $$quoteStorageName = quoteStorageName;
+            }
+        };
+        this.$get = [ "localStorageService", function(localStorageService) {
+            return new LocalStorage(localStorageService, $$reservationStorageName, $$quoteStorageName);
+        } ];
+    }
+    function LocalStorage(localStorageService, reservationStorageName, quoteStorageName) {
+        var $$service = this;
+        this.$$reservationStorageName = reservationStorageName || "X-ITACA-RSV";
+        this.$$quoteStorageName = quoteStorageName || "X-ITACA-QUOTE";
+        this.setReservation = function(reservation) {
+            if (!reservation || reservation.step > 3 || reservation.id || !reservation.hotel || !reservation.hotel.id) {
+                return false;
+            }
+            var storage = localStorageService.get($$service.$$reservationStorageName);
+            if (!_.isPlainObject(storage)) {
+                storage = {};
+            }
+            var hotelId = reservation.hotel.id;
+            var guestId = reservation.guest ? reservation.guest.id : null;
+            var hotelStorage = _.isPlainObject(storage[hotelId]) ? storage[hotelId] : {};
+            reservation.step = reservation.step > 2 ? 2 : reservation.step;
+            _.unset(reservation, "payment");
+            _.unset(reservation, "paymentMethod");
+            _.unset(reservation, "paymentType");
+            _.unset(reservation, "bill");
+            _.unset(reservation, "billing");
+            _.unset(reservation, "guest");
+            hotelStorage[guestId || "anonymous"] = reservation;
+            storage[hotelId] = hotelStorage;
+            localStorageService.set($$service.$$reservationStorageName, storage);
+            return true;
+        };
+        this.getReservation = function(hotelId, guestId) {
+            if (!hotelId) {
+                return null;
+            }
+            var storage = localStorageService.get($$service.$$reservationStorageName);
+            var hotelStorage = storage ? storage[hotelId] : null;
+            if (hotelStorage) {
+                return hotelStorage[guestId || "anonymous"];
+            }
+            return null;
+        };
+        this.removeReservation = function(hotelId, guestId) {
+            if (!hotelId) {
+                return false;
+            }
+            var storage = localStorageService.get($$service.$$reservationStorageName);
+            var hotelStorage = storage ? storage[hotelId] : null;
+            if (hotelStorage) {
+                hotelStorage[guestId || "anonymous"] = undefined;
+                storage[hotelId] = hotelStorage;
+                localStorageService.set($$service.$$reservationStorageName, storage);
+                return true;
+            }
+            return false;
+        };
+        this.setQuote = function(reservation) {
+            var storage = localStorageService.get($$service.$$quoteStorageName);
+            storage = storage && angular.isObject(storage) ? storage : {};
+            if (AppOptions.user && AppOptions.user.id) {
+                var userResObj = storage[AppOptions.user.id];
+                userResObj = userResObj && angular.isObject(userResObj) ? userResObj : {};
+                _.unset(reservation, "payment");
+                _.unset(reservation, "guest");
+                userResObj[AppOptions.hotelId] = reservation;
+                storage[AppOptions.user.id] = userResObj;
+                localStorageService.set($$service.$$quoteStorageName, storage);
+                return true;
+            }
+            return false;
+        };
+        this.getQuote = function() {
+            var storage = localStorageService.get($$service.$$quoteStorageName);
+            if (storage && storage[AppOptions.user.id]) {
+                var reservation = storage[AppOptions.user.id][AppOptions.hotelId];
+                DateUtils.convertDateStringsToDates(reservation);
+                return reservation;
+            }
+            return {};
+        };
+        this.removeQuote = function() {
+            var storage = localStorageService.get($$service.$$quoteStorageName);
+            if (storage && storage[AppOptions.user.id]) {
+                storage[AppOptions.user.id][AppOptions.hotelId] = undefined;
+            }
+        };
+    }
+})();
+
+(function() {
+    "use strict";
     angular.module("itaca.utils").provider("LocaleUtils", LocaleUtilsProvider);
     function LocaleUtilsProvider() {
-        var $$dataUrl = "/locales.json", $$dataObj;
+        var $$dataUrl = "/resources/public/js/data/json/locales.json", $$dataObj;
         this.setData = function(data) {
             if (_.isPlainObject(data)) {
                 $$dataObj = data;
@@ -920,6 +1099,11 @@
             discount = parseFloat(discount);
             discountType = discountType || "PRICE";
             return service.fixedDecimals(discountType == "PERCENTAGE" ? price / 100 * discount : 100 * discount / price);
+        };
+        service.applyDiscount = function(price, discount, discountType) {
+            discountType = discountType || "PRICE";
+            var discountAmount = discountType == "PRICE" ? parseFloat(discount) : service.calculateDiscount(price, discount, discountType);
+            return service.fixedDecimals(price - discountAmount);
         };
         service.uniqueNumber = function() {
             var date = Date.now();
@@ -1017,7 +1201,7 @@
     "use strict";
     angular.module("itaca.utils").provider("PhoneUtils", PhoneUtilsProvider);
     function PhoneUtilsProvider() {
-        var $$dataUrl = "/phone-prefixes.json", $$dataObj;
+        var $$dataUrl = "/resources/public/js/data/json/phone-prefixes.json", $$dataObj;
         this.setData = function(data) {
             if (_.isPlainObject(data)) {
                 $$dataObj = data;
@@ -1133,32 +1317,53 @@
 
 (function() {
     "use strict";
-    angular.module("itaca.utils").constant("REGEXP", REGEXP);
-    var REGEXP = {
-        username: /^[a-z0-9_.-@]{3,32}$/,
-        password: /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&_+-]*)(?=\S+$).{8,32}$/,
-        strong_password: /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&_+-])(?=\S+$).{8,32}$/,
-        email: /^[-a-z0-9~!$%^&*_=+}{\'?]+(\.[-a-z0-9~!$%^&*_=+}{\'?]+)*@([a-z0-9_][-a-z0-9_]*(\.[-a-z0-9_]+)*\.(aero|arpa|biz|com|coop|edu|gov|info|int|mil|museum|name|net|org|pro|travel|mobi|[a-z][a-z])|([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}))(:[0-9]{1,5})?$/i,
-        zip: /^[0-9]{5}$/,
-        province: /^[a-zA-Z]{2}$/,
-        phone: /^([+]{0,1}[0-9]{2,4}){1}[0-9]{3,11}$/,
-        creditCard: /^(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\d{3})\d{11})$/,
-        price: /^[0-9]+(\.[0-9]{1,2})?$/,
-        priceNoStrict: /^[-+]*[0-9]+(\.[0-9]{1,2})?$/,
-        vat: /^((AT)?U[0-9]{8}|(BE)?0[0-9]{9}|(BG)?[0-9]{9,10}|(CY)?[0-9]{8}L|(CZ)?[0-9]{8,10}|(DE)?[0-9]{9}|(DK)?[0-9]{8}|(EE)?[0-9]{9}|(EL|GR)?[0-9]{9}|(ES)?[0-9A-Z][0-9]{7}[0-9A-Z]|(FI)?[0-9]{8}|(FR)?[0-9A-Z]{2}[0-9]{9}|(GB)?([0-9]{9}([0-9]{3})?|[A-Z]{2}[0-9]{3})|(HU)?[0-9]{8}|(IE)?[0-9]S[0-9]{5}L|(IT)?[0-9]{11}|(LT)?([0-9]{9}|[0-9]{12})|(LU)?[0-9]{8}|(LV)?[0-9]{11}|(MT)?[0-9]{8}|(NL)?[0-9]{9}B[0-9]{2}|(PL)?[0-9]{10}|(PT)?[0-9]{9}|(RO)?[0-9]{2,10}|(SE)?[0-9]{12}|(SI)?[0-9]{8}|(SK)?[0-9]{10})$/,
-        fiscalCode: /^([A-Za-z]{6}[0-9lmnpqrstuvLMNPQRSTUV]{2}[abcdehlmprstABCDEHLMPRST]{1}[0-9lmnpqrstuvLMNPQRSTUV]{2}[A-Za-z]{1}[0-9lmnpqrstuvLMNPQRSTUV]{3}[A-Za-z]{1})|([0-9]{11})$/,
-        dateString: /^(\d{4}|\+\d{6})(?:-(\d{2})(?:-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2})\.(\d{1,})(Z|([\-+])((\d{2}):(\d{2})|(\d{4})))?)?)?)?$/
-    };
+    angular.module("itaca.utils").factory("REGEXP", RegexpFactory);
+    function RegexpFactory() {
+        return {
+            username: /^[a-z0-9_.-@]{3,32}$/,
+            password: /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&_+-]*)(?=\S+$).{8,32}$/,
+            strong_password: /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&_+-])(?=\S+$).{8,32}$/,
+            email: /^[-a-z0-9~!$%^&*_=+}{\'?]+(\.[-a-z0-9~!$%^&*_=+}{\'?]+)*@([a-z0-9_][-a-z0-9_]*(\.[-a-z0-9_]+)*\.(aero|arpa|biz|com|coop|edu|gov|info|int|mil|museum|name|net|org|pro|travel|mobi|[a-z][a-z])|([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}))(:[0-9]{1,5})?$/i,
+            zip: /^[0-9]{5}$/,
+            province: /^[a-zA-Z]{2}$/,
+            phone: /^([+]{0,1}[0-9]{2,4}){1}[0-9]{3,11}$/,
+            creditCard: /^(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\d{3})\d{11})$/,
+            price: /^[0-9]+(\.[0-9]{1,2})?$/,
+            priceNoStrict: /^[-+]*[0-9]+(\.[0-9]{1,2})?$/,
+            vat: /^((AT)?U[0-9]{8}|(BE)?0[0-9]{9}|(BG)?[0-9]{9,10}|(CY)?[0-9]{8}L|(CZ)?[0-9]{8,10}|(DE)?[0-9]{9}|(DK)?[0-9]{8}|(EE)?[0-9]{9}|(EL|GR)?[0-9]{9}|(ES)?[0-9A-Z][0-9]{7}[0-9A-Z]|(FI)?[0-9]{8}|(FR)?[0-9A-Z]{2}[0-9]{9}|(GB)?([0-9]{9}([0-9]{3})?|[A-Z]{2}[0-9]{3})|(HU)?[0-9]{8}|(IE)?[0-9]S[0-9]{5}L|(IT)?[0-9]{11}|(LT)?([0-9]{9}|[0-9]{12})|(LU)?[0-9]{8}|(LV)?[0-9]{11}|(MT)?[0-9]{8}|(NL)?[0-9]{9}B[0-9]{2}|(PL)?[0-9]{10}|(PT)?[0-9]{9}|(RO)?[0-9]{2,10}|(SE)?[0-9]{12}|(SI)?[0-9]{8}|(SK)?[0-9]{10})$/,
+            fiscalCode: /^([A-Za-z]{6}[0-9lmnpqrstuvLMNPQRSTUV]{2}[abcdehlmprstABCDEHLMPRST]{1}[0-9lmnpqrstuvLMNPQRSTUV]{2}[A-Za-z]{1}[0-9lmnpqrstuvLMNPQRSTUV]{3}[A-Za-z]{1})|([0-9]{11})$/,
+            dateString: /^(\d{4}|\+\d{6})(?:-(\d{2})(?:-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2})\.(\d{1,})(Z|([\-+])((\d{2}):(\d{2})|(\d{4})))?)?)?)?$/
+        };
+    }
 })();
 
 (function() {
     "use strict";
-    ReservationUtilsFactory.$inject = [ "$translate", "NumberUtils", "ObjectUtils", "DateUtils", "LocalStorage", "RESERVATION" ];
-    angular.module("itaca.utils").value("RESERVATION", {
-        rooms: []
-    });
+    RequestTimeoutInterceptor.$inject = [ "$q", "$translate" ];
+    angular.module("itaca.utils").factory("requestTimeoutInterceptor", RequestTimeoutInterceptor);
+    function RequestTimeoutInterceptor($q, $translate) {
+        var $$service = {};
+        $$service.responseError = function(rejection) {
+            var deferred = $q.defer();
+            if (rejection.data && rejection.data.exception === "java.net.SocketTimeoutException") {
+                $translate([ "error.request.generic", "common.try.again.or.contact.us" ]).then(function(messages) {
+                    rejection.data.message = messages["error.request.generic"] + ". " + messages["common.try.again.or.contact.us"];
+                    deferred.reject(rejection);
+                });
+            } else {
+                deferred.reject(rejection);
+            }
+            return deferred.promise;
+        };
+        return $$service;
+    }
+})();
+
+(function() {
+    "use strict";
+    ReservationUtilsFactory.$inject = [ "$translate", "NumberUtils", "AmountUtils", "ObjectUtils", "DateUtils", "LocalStorage", "RESERVATION" ];
     angular.module("itaca.utils").factory("ReservationUtils", ReservationUtilsFactory);
-    function ReservationUtilsFactory($translate, NumberUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION) {
+    function ReservationUtilsFactory($translate, NumberUtils, AmountUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION) {
         var $$service = {};
         $$service.clearReservation = function(reservation, keepSearchParams) {
             if (keepSearchParams) {
@@ -1170,8 +1375,8 @@
         $$service.storeLastReservation = function() {
             return LocalStorage.setReservation(RESERVATION);
         };
-        $$service.loadLastReservation = function() {
-            var lastHotelRes = LocalStorage.getReservation();
+        $$service.loadLastReservation = function(hotelId, guestId) {
+            var lastHotelRes = LocalStorage.getReservation(hotelId, guestId);
             if (!lastHotelRes) {
                 lastHotelRes = _.mapValues(RESERVATION, function(value) {
                     if (_.isArray(value)) {
@@ -1179,17 +1384,11 @@
                     }
                     return undefined;
                 });
-                lastHotelRes.people = {
-                    adults: 1
-                };
             }
-            _.assignIn(RESERVATION, lastHotelRes);
-            DateUtils.convertDateStringsToDates(RESERVATION);
-            if (RESERVATION && RESERVATION.checkin && RESERVATION.checkout && moment(RESERVATION.checkin).isBefore(DateUtils.absoluteMoment(), "days")) {
-                RESERVATION = {
-                    rooms: []
-                };
-                $$service.storeLastReservation();
+            DateUtils.convertDateStringsToDates(lastHotelRes);
+            if (lastHotelRes && lastHotelRes.checkin && lastHotelRes.checkout && moment(lastHotelRes.checkin).isBefore(DateUtils.absoluteMoment(), "days")) {
+                $$service.clearReservation(lastHotelRes);
+                LocalStorage.removeReservation(hotelId, guestId);
             }
             return lastHotelRes;
         };
@@ -1219,6 +1418,16 @@
                 }
             }
         };
+        $$service.normalizePeople = function(people) {
+            if (!_.isPlainObject(people)) {
+                people = {};
+            }
+            people.adults = people.adults || 0;
+            people.boys = people.boys || 0;
+            people.children = people.children || 0;
+            people.kids = people.kids || 0;
+            return people;
+        };
         $$service.peopleSummary = function(peopleObj, extraPeopleObj) {
             if (!peopleObj) {
                 peopleObj = {};
@@ -1237,52 +1446,55 @@
                     if (peopleObj.adults || extraPeopleObj.adults) {
                         var adults = parseInt(peopleObj.adults || 0) + parseInt(extraPeopleObj.adults || 0);
                         if (adults > 0) {
-                            peopleSummary += adults + " " + (adults < 2) ? translations["people.adult"] : translations["people.adults"];
+                            peopleSummary += adults + " " + (adults < 2 ? translations["people.adult"] : translations["people.adults"]);
                         }
                     }
                     if (peopleObj.boys || extraPeopleObj.boys) {
                         var boys = parseInt(peopleObj.boys || 0) + parseInt(extraPeopleObj.boys || 0);
                         if (boys > 0) {
                             peopleSummary += peopleObj.adults || extraPeopleObj.adults ? ", " : "";
-                            peopleSummary += boys + " " + (boys < 2) ? translations["people.boy"] : translations["people.boys"];
+                            peopleSummary += boys + " " + (boys < 2 ? translations["people.boy"] : translations["people.boys"]);
                         }
                     }
                     if (peopleObj.children || extraPeopleObj.children) {
                         var children = parseInt(peopleObj.children || 0) + parseInt(extraPeopleObj.children || 0);
                         if (children > 0) {
                             peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys ? ", " : "";
-                            peopleSummary += children + " " + (children < 2) ? translations["people.child"] : translations["people.children"];
+                            peopleSummary += children + " " + (children < 2 ? translations["people.child"] : translations["people.children"]);
                         }
                     }
                     if (peopleObj.kids || extraPeopleObj.kids) {
                         var kids = parseInt(peopleObj.kids || 0) + parseInt(extraPeopleObj.kids || 0);
                         if (kids > 0) {
                             peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys || peopleObj.children || extraPeopleObj.children ? ", " : "";
-                            peopleSummary += kids + " " + (kids < 2) ? translations["people.kid"] : translations["people.kids"];
+                            peopleSummary += kids + " " + (kids < 2 ? translations["people.kid"] : translations["people.kids"]);
                         }
                     }
                     return peopleSummary.toLowerCase();
                 });
             }
         };
-        $$service.extraPeople = function(otherBeds) {
+        $$service.peopleByBeds = function(beds) {
             var people = {
-                adults: 0
+                adults: 0,
+                boys: 0,
+                children: 0,
+                kids: 0
             };
-            _.forEach(otherBeds, function(otherBed) {
-                if (!otherBed.people) return;
-                var otherBedPeople = otherBed.people;
-                if (otherBedPeople.adults) {
-                    people.adults = people.adults ? parseInt(people.adults) + parseInt(otherBedPeople.adults) : parseInt(otherBedPeople.adults);
+            _.forEach(beds, function(bed) {
+                if (!bed.people) return;
+                var bedPeople = bed.people;
+                if (bedPeople.adults) {
+                    people.adults = people.adults ? parseInt(people.adults) + parseInt(bedPeople.adults) : parseInt(bedPeople.adults);
                 }
-                if (otherBedPeople.boys) {
-                    people.boys = people.boys ? parseInt(people.boys) + parseInt(otherBedPeople.boys) : parseInt(otherBedPeople.boys);
+                if (bedPeople.boys) {
+                    people.boys = people.boys ? parseInt(people.boys) + parseInt(bedPeople.boys) : parseInt(bedPeople.boys);
                 }
-                if (otherBedPeople.children) {
-                    people.children = people.children ? parseInt(people.children) + parseInt(otherBedPeople.children) : parseInt(otherBedPeople.children);
+                if (bedPeople.children) {
+                    people.children = people.children ? parseInt(people.children) + parseInt(bedPeople.children) : parseInt(bedPeople.children);
                 }
-                if (otherBedPeople.kids) {
-                    people.kids = people.kids ? parseInt(people.kids) + parseInt(otherBedPeople.kids) : parseInt(otherBedPeople.kids);
+                if (bedPeople.kids) {
+                    people.kids = people.kids ? parseInt(people.kids) + parseInt(bedPeople.kids) : parseInt(bedPeople.kids);
                 }
             });
             return people;
@@ -1394,6 +1606,9 @@
                 partial: standard + extra
             };
         };
+        $$service.totalPeopleByRooms = function(rooms, checkBeds) {
+            return $$service.totalPeople($$service.peopleByRooms(rooms, checkBeds), $$service.extraPeopleByRooms(rooms, checkBeds));
+        };
         $$service.peopleByRooms = function(rooms, checkBeds) {
             var people = {
                 adults: 0,
@@ -1419,6 +1634,17 @@
                 people.boys = parseInt(roomPeople.boys) ? people.boys + parseInt(roomPeople.boys) : people.boys;
                 people.children = parseInt(roomPeople.children) ? people.children + parseInt(roomPeople.children) : people.children;
                 people.kids = parseInt(roomPeople.kids) ? people.kids + parseInt(roomPeople.kids) : people.kids;
+            });
+            return people;
+        };
+        $$service.extraPeopleByRooms = function(rooms, checkBeds) {
+            var people = {
+                adults: 0,
+                boys: 0,
+                children: 0,
+                kids: 0
+            };
+            _.forEach(rooms, function(room, index, collection) {
                 var roomExtraPeople = angular.copy(room.extraPeople || {});
                 if (checkBeds && !_.isEmpty(room.otherBeds)) {
                     roomExtraPeople.adults = 0;
@@ -1446,10 +1672,14 @@
                 return {};
             }
             if (!basePeople) {
-                return angular.copy(maxPeople);
+                return maxCount > 0 ? $$service.peopleByMax(maxPeople, {
+                    adults: maxCount
+                }, maxCount) : angular.copy(maxPeople);
             }
             if (!maxPeople) {
-                return angular.copy(basePeople);
+                return maxCount > 0 ? $$service.peopleByMax(basePeople, {
+                    adults: maxCount
+                }, maxCount) : angular.copy(basePeople);
             }
             var max = maxCount;
             if (!max) {
@@ -1483,12 +1713,8 @@
             };
         };
         $$service.peopleAvailability = function(basePeople, currentPeople, maxCount) {
-            currentPeople = currentPeople || {
-                adults: 0,
-                boys: 0,
-                children: 0,
-                kids: 0
-            };
+            basePeople = $$service.normalizePeople(basePeople);
+            currentPeople = $$service.normalizePeople(currentPeople);
             var currentCount = $$service.guestsCount(currentPeople).standard;
             var currentAv = parseInt(maxCount || 0) - currentCount;
             var peopleAvailability = {
@@ -1527,40 +1753,105 @@
             }
             return peopleAvailability;
         };
-        $$service.roomSold = function(rate, roomType, hotelVat, peopleObj, extraPeopleObj, beds, otherBeds, services) {
-            if (!rate || !roomType || !hotelVat) {
+        $$service.bedsAvailability = function(maxBeds, currentBeds, maxCount) {
+            var bedsAvailability = [];
+            _.forEach(currentBeds, function(bedSold) {
+                var newBed = angular.copy(bedSold);
+                newBed.uid = newBed.uid || NumberUtils.uniqueNumber();
+                newBed.$$available = false;
+                newBed.$$blocked = false;
+                newBed.$$editing = false;
+                bedsAvailability.push(newBed);
+            });
+            _.forEach(maxBeds, function(bed) {
+                var n = 0;
+                do {
+                    var added = _.filter(bedsAvailability, function(b) {
+                        return (b.bed || b).type == bed.type;
+                    });
+                    n = _.size(added);
+                    if (n >= bed.count) {
+                        return;
+                    }
+                    var newBed = angular.copy(bed);
+                    newBed.uid = NumberUtils.uniqueNumber();
+                    newBed.$$available = true;
+                    newBed.$$blocked = _.size(currentBeds) >= maxCount;
+                    bedsAvailability.push(newBed);
+                } while (n < bed.count);
+            });
+            return bedsAvailability;
+        };
+        $$service.$generateRoomIncludedServices = function(roomType, peopleObj, nights, initialServices) {
+            var includedServices = [];
+            _.forEach(_.filter(roomType.services, [ "bookability", "INCLUDED" ]), function(s) {
+                includedServices.push($$service.serviceSold(s, peopleObj, nights, 1));
+            });
+            return _.unionBy(initialServices || [], includedServices, "service.id");
+        };
+        $$service.$generateRoomIncludedBeds = function(roomType, peopleObj, nights, vatRate, initialBeds) {
+            var beds = initialBeds || [], count = 0;
+            var remainingPeople = $$service.normalizePeople(angular.copy(peopleObj));
+            var guestsCount = $$service.guestsCount(remainingPeople);
+            _.forEach(roomType.beds, function(bed) {
+                if (guestsCount.standard <= 0 || roomType.bedCount <= count) {
+                    return false;
+                }
+                var n = 0;
+                do {
+                    var added = _.filter(beds, function(b) {
+                        return b.bed.type == bed.type;
+                    });
+                    n = _.size(added);
+                    if (n >= bed.count) {
+                        return;
+                    }
+                    var newBed = angular.copy(bed);
+                    newBed.uid = NumberUtils.uniqueNumber();
+                    var people = $$service.peopleByMax(remainingPeople, newBed.people, newBed.maxPerson);
+                    beds.push($$service.bedSold(newBed, people, nights, vatRate));
+                    count++;
+                    remainingPeople.adults = remainingPeople.adults - (people.adults || 0);
+                    remainingPeople.boys = remainingPeople.boys - (people.boys || 0);
+                    remainingPeople.children = remainingPeople.children - (people.children || 0);
+                    remainingPeople.kids = remainingPeople.kids - (people.kids || 0);
+                    guestsCount = $$service.guestsCount(remainingPeople);
+                } while (guestsCount.standard > 0 && n < bed.count);
+            });
+            return beds;
+        };
+        $$service.roomSold = function(roomType, rateSold, vatRate, peopleObj, extraPeopleObj, beds, otherBeds, services, status) {
+            if (!rateSold || !roomType || !vatRate) {
                 return {};
             }
-            if (!peopleObj) {
+            var nights = DateUtils.absoluteMoment(rateSold.startDate).diff(DateUtils.absoluteMoment(rateSold.endDate), "days");
+            var guestsCount = $$service.guestsCount(peopleObj, extraPeopleObj);
+            if (!guestsCount.standard) {
                 peopleObj = {
-                    adults: 1
+                    adults: 1,
+                    boys: 0,
+                    children: 0,
+                    kids: 0
                 };
+                guestsCount = $$service.guestsCount(peopleObj, extraPeopleObj);
             }
-            var selectedPeople = peopleObj.adults >= roomType.guestsCount.standard ? roomType.guestsCount.standard : peopleObj.adults;
-            if (!extraPeopleObj) {
-                extraPeopleObj = {
-                    adults: 0
-                };
+            if (!guestsCount.extra) {
+                extraPeopleObj = $$service.peopleByBeds(otherBeds);
+                guestsCount = $$service.guestsCount(peopleObj, extraPeopleObj);
             }
-            var selectedExtraPeople = extraPeopleObj.adults >= roomType.guestsCount.extra ? roomType.guestsCount.extra : extraPeopleObj.adults;
             var roomSold = {
                 type: roomType,
-                totalRate: rate,
-                cancellationPolicy: rate.cancellationPolicy ? rate.cancellationPolicy : null,
-                noShowPolicy: rate.noShowPolicy ? rate.noShowPolicy : null,
-                status: "CONFIRMED",
-                services: services || [],
-                beds: beds || [],
-                otherBeds: otherBeds || [],
+                totalRate: rateSold,
+                status: status || "CONFIRMED",
                 people: peopleObj,
                 extraPeople: extraPeopleObj,
+                guestsCount: guestsCount,
+                services: $$service.$generateRoomIncludedServices(roomType, peopleObj, nights, services),
+                beds: $$service.$generateRoomIncludedBeds(roomType, peopleObj, nights, vatRate, beds),
+                otherBeds: otherBeds || [],
                 creationDate: new Date()
             };
-            roomSold.guestsCount = $$service.guestsCount(selectedPeople, selectedExtraPeople);
-            var vat = (100 + hotelVat) / 100;
-            var taxable = rate.amount.finalAmount / vat;
-            roomSold.totalRate.amount.vatAmount = NumberUtils.fixedDecimals(taxable * hotelVat / 100);
-            roomSold.totalRate.amount.vatRate = hotelVat;
+            AmountUtils.calculateVat(roomSold.totalRate.amount, vatRate);
             return roomSold;
         };
         $$service.serviceSold = function(service, peopleObj, nights, count) {
@@ -1680,11 +1971,11 @@
         };
         $$service.updateServiceSoldPrice = function(serviceSold, peopleObj, nights, count, force) {
             var serviceDays = nights;
-            if (oldService.startDate && oldService.endDate) {
-                serviceDays = DateUtils.absoluteMoment(oldService.endDate).diff(DateUtils.absoluteMoment(serviceSold.startDate), "days");
+            if (serviceSold.startDate && serviceSold.endDate) {
+                serviceDays = DateUtils.absoluteMoment(serviceSold.endDate).diff(DateUtils.absoluteMoment(serviceSold.startDate), "days");
             }
             var oldService = force ? angular.copy(serviceSold) : null;
-            _.assign(serviceSold, $$service.serviceSold(serviceSold.service, peopleObj, serviceDays, count));
+            _.assign(serviceSold, $$service.serviceSold(serviceSold.service, peopleObj || serviceSold.people, serviceDays, count || serviceSold.count));
             serviceSold.amount = oldService ? oldService.amount : serviceSold.amount;
             serviceSold.amount.vatAmount = NumberUtils.vatAmount(serviceSold.amount.finalAmount, serviceSold.amount.vatRate);
         };
@@ -1692,6 +1983,7 @@
             if (!bed) {
                 return {};
             }
+            peopleObj = $$service.normalizePeople(peopleObj);
             var amount = {
                 type: "PRICE",
                 currency: "EUR",
@@ -1719,7 +2011,7 @@
             amount.vatAmount = NumberUtils.vatAmount(amount.finalAmount, amount.vatRate);
             return {
                 bed: bed,
-                people: peopleObj || {},
+                people: peopleObj,
                 amount: amount,
                 status: "CONFIRMED"
             };
@@ -1730,7 +2022,7 @@
                 bedNights = DateUtils.absoluteMoment(bedSold.endDate).diff(DateUtils.absoluteMoment(bedSold.startDate), "days");
             }
             var oldBed = force ? angular.copy(bedSold) : null;
-            _.assign(bedSold, $$service.bedSold(bedSold.bed, peopleObj, bedNights, vatRate));
+            _.assign(bedSold, $$service.bedSold(bedSold.bed, peopleObj || bedSold.people, bedNights, vatRate || bedSold.amount.vatRate));
             bedSold.amount = oldBed ? oldBed.amount : bedSold.amount;
             bedSold.amount.vatAmount = NumberUtils.vatAmount(bedSold.amount.finalAmount, bedSold.amount.vatRate);
         };
@@ -2583,6 +2875,13 @@
         };
         return $$service;
     }
+})();
+
+(function() {
+    "use strict";
+    angular.module("itaca.utils").value("RESERVATION", {
+        rooms: []
+    });
 })();
 
 (function() {
