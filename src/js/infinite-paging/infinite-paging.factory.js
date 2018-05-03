@@ -10,9 +10,11 @@
 	function InfinitePagingFactory(filterFilter, $log, $timeout, $q, Notification) {
 		var $$service = function(/** Service to call for elements OR elements arrays */ source, 
 				/** Params Map Object */ params, /** Name of the service's  function */ serviceFnName, postBody) {
+			
+			var _self = this;
 	 
 			this.source = source;
-			this.$$sourceType = angular.isArray(this.source) ? 1 : (angular.isObject(this.source) ? 2 : -1);
+			this.$$sourceType = angular.isArray(source) ? 1 : (angular.isObject(source) ? 2 : -1);
 			this.serviceFnName = serviceFnName ? serviceFnName : 'all';
 			this.params = params;
 			this.defaultSize = 30;
@@ -27,9 +29,6 @@
 		    this.postBody = postBody,
 		    
 		    this.nextPage = function() {
-		    	// reference to this Object
-	    		var _self = this;
-		    	
 	    		var deferred = $q.defer();
 	    		
 		    	return $timeout(function() {	    		
@@ -208,29 +207,24 @@
 		    };
 		    
 		    this.reload = function() {
-	// // workaround per le promise
-		    	if(!this) {
-		    		return;
-		    	}
-		    	
-		    	this.reset();
-			    return this.nextPage();
+		    	_self.reset();
+			    return _self.nextPage();
 		    };
 		    
 		    this.reset = function() {
-		    	this.busy = false;
-		    	this.executed = true;
-		    	this.lastPage = false;
-		    	this.page = 0;
-		    	this.totalPages = 0;
-		    	this.totalItems = 0;
-			    this.items = [];
-			    this.newItems = false;
+		    	_self.busy = false;
+		    	_self.executed = true;
+		    	_self.lastPage = false;
+		    	_self.page = 0;
+		    	_self.totalPages = 0;
+		    	_self.totalItems = 0;
+			    _self.items = [];
+			    _self.newItems = false;
 	// this.resetParams();
 		    };
 		    
 		    this.resetParams = function(){
-		    	_.forEach(this.params, function(value, key, collection) {
+		    	_.forEach(_self.params, function(value, key, collection) {
 		    		if (key != "size" && key != "page" && key != "sort") {
 		    			collection[key] = undefined;
 		    		}
@@ -238,8 +232,8 @@
 		    };
 		    
 		    this.resetAndReload = function(){
-		    	this.resetParams();
-		    	this.reload();
+		    	_self.resetParams();
+		    	_self.reload();
 		    };
 		};
 		
