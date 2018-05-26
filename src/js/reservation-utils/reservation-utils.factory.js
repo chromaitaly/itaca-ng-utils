@@ -13,7 +13,7 @@
 		
 		$$service.clearReservation = function(reservation, keepSearchParams) {
 			if (keepSearchParams) {
-				ObjectUtils.clearObject(reservation, /^(check(?:in$|out$))|^people$|^requestPeople$|^hotelId$/);
+				ObjectUtils.clearObject(reservation, /^(check(?:in$|out$))|^people$|^requestPeople$|^hotelId$|^hotel$/);
 			} else {
 				ObjectUtils.clearObject(reservation);
 			}
@@ -38,7 +38,7 @@
 			
 			DateUtils.convertDateStringsToDates(lastHotelRes);
 			
-			if (lastHotelRes && lastHotelRes.checkin && lastHotelRes.checkout && moment(lastHotelRes.checkin).isBefore(DateUtils.absoluteMoment(), "days")) {
+			if (lastHotelRes && lastHotelRes.checkin && lastHotelRes.checkout && moment(lastHotelRes.checkin).isBefore(moment(), "days")) {
 				// se il checkin della prenotazione salvata è precendente ad oggi, la azzero
 				$$service.clearReservation(lastHotelRes);
 				LocalStorage.removeReservation(hotelId, guestId);
@@ -47,24 +47,36 @@
 			return lastHotelRes;
 		};
 		
+		$$service.removeLastReservation = function(hotelId, guestId) {
+			if (!hotelId) {
+				hotelId = RESERVATION.hotel && RESERVATION.hotel.id ? RESERVATION.hotel.id : null; 
+			}
+			
+			if (!guestId) {
+				guestId = RESERVATION.guest && RESERVATION.guest.id ? RESERVATION.guest.id : null; 
+			}
+			
+			return LocalStorage.removeReservation(hotelId, guestId);
+		};
+		
 		$$service.availableNights = function(checkin, checkout, targetDate) {
 			if (!checkin || !checkout) {
 				return null;
 			}
 			
-			var checkinMoment = DateUtils.absoluteMoment(checkin);
-			var checkoutMoment = DateUtils.absoluteMoment(checkout);
+			var checkinMoment = moment(checkin);
+			var checkoutMoment = moment(checkout);
 			// se targetDate è false vale il checkin, altrimenti la data passata o,
 			// se null, la data odierna
-			var targetMoment = _.isBoolean(targetDate) && !targetDate ? DateUtils.absoluteMoment(checkin) : targetDate ? DateUtils.absoluteMoment(targetDate) : DateUtils.absoluteMoment();
+			var targetMoment = _.isBoolean(targetDate) && !targetDate ? moment(checkin) : targetDate ? moment(targetDate) : moment();
 			
 			if (checkoutMoment.isAfter(targetMoment, "days") && checkinMoment.isBefore(targetMoment, "days")) {
 				// se la prenotazione è già iniziata e non è trascorsa, conto i
 				// giorni da oggi al checkout
-				return checkoutMoment.diff(targetMoment, 'days');
+				return DateUtils.diff(targetMoment, checkoutMoment);
 			
 			} else {
-				return checkoutMoment.diff(checkinMoment, 'days');
+				return DateUtils.diff(checkinMoment, checkoutMoment);
 			}
 		};
 		
@@ -92,10 +104,10 @@
 				people = {};
 			}
 			
-			people.adults = people.adults || 0;
-			people.boys = people.boys || 0;
-			people.children = people.children || 0;
-			people.kids = people.kids || 0;
+			people.adults = NumberUtils.defaultNumber(people.adults);
+			people.boys = NumberUtils.defaultNumber(people.boys);
+			people.children = NumberUtils.defaultNumber(people.children);
+			people.kids = NumberUtils.defaultNumber(people.kids);
 			
 			return people;		
 		};
@@ -120,7 +132,8 @@
 				return $translate(['people.adult','people.adults','people.child','people.children','people.boy','people.boys','people.kid','people.kids']).then(function(translations) {
 				    var peopleSummary = '';
 				    
-					if(peopleObj.adults || extraPeopleObj.adults){
+				    var hasAdults = peopleObj.adults > 0 || extraPeopleObj.adults > 0;
+					if (hasAdults){
 						var adults = parseInt(peopleObj.adults || 0) + parseInt(extraPeopleObj.adults || 0);
 						
 						if(adults > 0){
@@ -128,29 +141,31 @@
 						}
 					}
 					
-					if(peopleObj.boys || extraPeopleObj.boys){
+					var hasBoys = peopleObj.boys > 0 || extraPeopleObj.boys > 0;
+					if (hasBoys){
 						var boys = parseInt(peopleObj.boys || 0) + parseInt(extraPeopleObj.boys || 0);
 	
 						if(boys > 0){
-							peopleSummary += (peopleObj.adults || extraPeopleObj.adults) ? ', ' : '';
+							peopleSummary += hasAdults ? ', ' : '';
 							peopleSummary += boys +' '+ (boys < 2 ? translations['people.boy'] : translations['people.boys']);
 						}
 					}
 					
-					if(peopleObj.children || extraPeopleObj.children){
+					var hasChildren = peopleObj.children > 0 || extraPeopleObj.children > 0;
+					if (hasChildren){
 						var children = parseInt(peopleObj.children || 0) + parseInt(extraPeopleObj.children || 0);
 						
 						if(children > 0){
-							peopleSummary += (peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys) ? ', ' : '';
+							peopleSummary += (hasAdults || hasBoys) ? ', ' : '';
 							peopleSummary += children +' '+ (children < 2 ? translations['people.child'] : translations['people.children']);
 						}
 					}
 					
-					if(peopleObj.kids || extraPeopleObj.kids){
+					if(peopleObj.kids > 0 || extraPeopleObj.kids > 0){
 						var kids = parseInt(peopleObj.kids || 0) + parseInt(extraPeopleObj.kids || 0);
 						
 						if(kids > 0){
-							peopleSummary += (peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys || peopleObj.children || extraPeopleObj.children) ? ', ' : '';
+							peopleSummary += (hasAdults || hasBoys || hasChildren) ? ', ' : '';
 							peopleSummary += kids +' '+ (kids < 2 ? translations['people.kid'] : translations['people.kids']);
 						}
 					}
@@ -198,64 +213,66 @@
 			return people;
 		};
 		
-		$$service.totalPeople = function(peopleObj, peopleExtra) {
-			peopleObj = peopleObj || {adults: 0, boys: 0, children: 0, kids: 0};
-			peopleExtra = peopleExtra || {adults: 0, boys: 0, children: 0, kids: 0};
-			
-			var totalPeople = {
-				adults: NumberUtils.defaultNumber(peopleObj.adults) + NumberUtils.defaultNumber(peopleExtra.adults),
-				boys: NumberUtils.defaultNumber(peopleObj.boys) + NumberUtils.defaultNumber(peopleExtra.boys),
-				children: NumberUtils.defaultNumber(peopleObj.children) + NumberUtils.defaultNumber(peopleExtra.children),
-				kids: NumberUtils.defaultNumber(peopleObj.kids) + NumberUtils.defaultNumber(peopleExtra.kids)
-			};
-			
-			return totalPeople;
-		};
-		
 		// somma di tutti gli ospiti
-		$$service.guestsCount = function(peopleObj, peopleExtra) {
-			peopleObj = peopleObj || {adults: 0, boys: 0, children: 0, kids: 0};
-			peopleExtra = peopleExtra || {adults: 0, boys: 0, children: 0, kids: 0};
+		$$service.guestsCount = function(people, extraPeople) {
+			people = $$service.normalizePeople(people);
+			extraPeople = $$service.normalizePeople(extraPeople);
 			
-			var standard = 0;
-			if(!_.isNil(peopleObj.adults) && peopleObj.adults > 0){
-				standard += parseInt(peopleObj.adults);
+			var standard = 0, hasAdults = false, hasChildren = false;
+			if(!_.isNil(people.adults) && people.adults > 0){
+				hasAdults = true;
+				standard += parseInt(people.adults);
 			}
-			if(!_.isNil(peopleObj.boys) && peopleObj.boys > 0){
-				standard += parseInt(peopleObj.boys);
+			if(!_.isNil(people.boys) && people.boys > 0){
+				hasChildren = true;
+				standard += parseInt(people.boys);
 			}
-			if(!_.isNil(peopleObj.children) && peopleObj.children > 0){
-				standard += parseInt(peopleObj.children);
+			if(!_.isNil(people.children) && people.children > 0){
+				hasChildren = true;
+				standard += parseInt(people.children);
 			}
-			if(!_.isNil(peopleObj.kids) && peopleObj.kids > 0){
-				standard += parseInt(peopleObj.kids);
+			if(!_.isNil(people.kids) && people.kids > 0){
+				hasChildren = true;
+				standard += parseInt(people.kids);
 			}
 			
-			var extra = 0, extraHasChildren = false;
-			if(!_.isNil(peopleExtra.adults) && peopleExtra.adults > 0){
-				extra += parseInt(peopleExtra.adults);
+			var extra = 0, extraHasAdults = false, extraHasChildren = false;
+			if(!_.isNil(extraPeople.adults) && extraPeople.adults > 0){
+				extraHasAdults = true;
+				extra += parseInt(extraPeople.adults);
 			}
-			if(!_.isNil(peopleExtra.boys) && peopleExtra.boys > 0){
+			if(!_.isNil(extraPeople.boys) && extraPeople.boys > 0){
 				extraHasChildren = true;
-				extra += parseInt(peopleExtra.boys);
+				extra += parseInt(extraPeople.boys);
 			}
-			if(!_.isNil(peopleExtra.children) && peopleExtra.children > 0){
+			if(!_.isNil(extraPeople.children) && extraPeople.children > 0){
 				extraHasChildren = true;
-				extra += parseInt(peopleExtra.children);
+				extra += parseInt(extraPeople.children);
 			}
-			if(!_.isNil(peopleExtra.kids) && peopleExtra.kids > 0){
+			if(!_.isNil(extraPeople.kids) && extraPeople.kids > 0){
 				extraHasChildren = true;
-				extra += parseInt(peopleExtra.kids);
+				extra += parseInt(extraPeople.kids);
 			}
 			
 			return {
 				standard: standard,
+				hasAdults: hasAdults,
+				hasChildren: hasChildren,
 				extra : extra,
+				extraHasAdults: extraHasAdults,
 				extraHasChildren: extraHasChildren,
 				total : standard + extra
 			};
 		};
 			
+		$$service.guestsCountByRooms = function(rooms, checkBeds) {
+			if (!rooms || !_.isArray(rooms)) {
+				return false;
+			}
+			
+			return $$service.guestsCount($$service.peopleByRooms(rooms, checkBeds), $$service.extraPeopleByRooms(rooms, checkBeds));
+		};
+		
 		$$service.guestsCountByBeds = function(standardBeds, otherBeds, maxOtherBeds){
 			var standard = 0;
 			var extra = 0;
@@ -309,6 +326,18 @@
 				extraHasAdults: extraHasAdults,
 				extraHasChildren: extraHasChildren,
 				partial: standard + extra
+			};
+		};
+		
+		$$service.totalPeople = function(people, extraPeople) {
+			people = $$service.normalizePeople(people);
+			extraPeople = $$service.normalizePeople(extraPeople);
+			
+			return {
+				adults: people.adults + extraPeople.adults,
+				boys: people.boys + extraPeople.boys,
+				children: people.children + extraPeople.children,
+				kids: people.kids + extraPeople.kids
 			};
 		};
 		
@@ -405,23 +434,23 @@
 		};
 		
 		/**
-		 * Genera le persone in base a quelle passate (basePeople) e al numero
+		 * Genera le persone in base a quelle passate (currentPeople) e al numero
 		 * massimo specificato per ogni categoria (maxPeople). Se specificato,
 		 * maxCount rappresenta il numero massimo di persone totali (sommando tutte
 		 * le categorie).
 		 * 
 		 */
-		$$service.peopleByMax = function(basePeople, maxPeople, maxCount) {
-			if (!basePeople && !maxPeople) {
+		$$service.peopleByMax = function(currentPeople, maxPeople, maxCount) {
+			if (!currentPeople && !maxPeople) {
 				return {};
 			}
 			
-			if (!basePeople) {
+			if (!currentPeople) {
 				return maxCount > 0 ? $$service.peopleByMax(maxPeople, {adults: maxCount}, maxCount) : angular.copy(maxPeople);
 			}
 			
 			if (!maxPeople) {
-				return maxCount > 0 ? $$service.peopleByMax(basePeople, {adults: maxCount}, maxCount) : angular.copy(basePeople);
+				return maxCount > 0 ? $$service.peopleByMax(currentPeople, {adults: maxCount}, maxCount) : angular.copy(currentPeople);
 			}
 			
 			var max = maxCount;
@@ -430,25 +459,25 @@
 			}
 			
 			// adults
-			var	adults = _.isNil(basePeople.adults) ? 0 : _.isNil(maxPeople.adults) ? basePeople.adults : (basePeople.adults <= maxPeople.adults ? basePeople.adults : maxPeople.adults);
+			var	adults = _.isNil(currentPeople.adults) ? 0 : _.isNil(maxPeople.adults) ? currentPeople.adults : (currentPeople.adults <= maxPeople.adults ? currentPeople.adults : maxPeople.adults);
 			if (max >= 0) {
 				adults = adults <= max ? adults : max;
 				max -= adults;			
 			}
 			// boys
-			var boys = _.isNil(basePeople.boys) ? 0 : _.isNil(maxPeople.boys) ? basePeople.boys : (basePeople.boys <= maxPeople.boys ? basePeople.boys : maxPeople.boys);
+			var boys = _.isNil(currentPeople.boys) ? 0 : _.isNil(maxPeople.boys) ? currentPeople.boys : (currentPeople.boys <= maxPeople.boys ? currentPeople.boys : maxPeople.boys);
 			if (max >= 0) {
 				boys = boys <= max ? boys : max;
 				max -= boys;			
 			}
 			// children
-			var children = _.isNil(basePeople.children) ? 0 : _.isNil(maxPeople.children) ? basePeople.children : (basePeople.children <= maxPeople.children ? basePeople.children : maxPeople.children);
+			var children = _.isNil(currentPeople.children) ? 0 : _.isNil(maxPeople.children) ? currentPeople.children : (currentPeople.children <= maxPeople.children ? currentPeople.children : maxPeople.children);
 			if (max >= 0) {
 				children = children <= max ? children : max;
 				max -= children;			
 			}
 			// kids
-			var kids = _.isNil(basePeople.kids) ? 0 : _.isNil(maxPeople.kids) ? basePeople.kids : (basePeople.kids <= maxPeople.kids ? basePeople.kids : maxPeople.kids);
+			var kids = _.isNil(currentPeople.kids) ? 0 : _.isNil(maxPeople.kids) ? currentPeople.kids : (currentPeople.kids <= maxPeople.kids ? currentPeople.kids : maxPeople.kids);
 			if (max >= 0) {
 				kids = kids <= max ? kids : max;
 				max -= kids;			
@@ -462,16 +491,22 @@
 			};
 		};
 		
-		$$service.peopleAvailability = function(basePeople, currentPeople, maxCount) {
-			basePeople = $$service.normalizePeople(basePeople);
+		$$service.peopleAvailability = function(maxPeople, currentPeople, maxCount) {
+			maxPeople = $$service.normalizePeople(maxPeople);
+			if ($$service.guestsCount(maxPeople).standard <= 0) {
+				maxPeople = angular.copy(currentPeople);
+			}
+			
 			currentPeople = $$service.normalizePeople(currentPeople);
+			
 			var currentCount = $$service.guestsCount(currentPeople).standard;
-			var currentAv = parseInt(maxCount || 0) - currentCount;
+			
+			var currentAv = maxCount ? parseInt(maxCount) - currentCount : currentCount;
 			
 			var peopleAvailability = {adults:0, boys:0, children:0, kids:0};
 			
 			// adults
-			for(var i=1; i <= parseInt(basePeople.adults || 0); i++) {
+			for(var i=1; i <= parseInt(maxPeople.adults || 0); i++) {
 				currentPeople.adults = currentPeople.adults || 0;
 				var	disabled = (i <= currentPeople.adults) ? false : (currentAv + currentPeople.adults - i < 0);
 				if(!disabled){
@@ -480,7 +515,7 @@
 			}
 			
 			// boys
-			for(var i=1; i <= parseInt(basePeople.boys || 0); i++) {
+			for(var i=1; i <= parseInt(maxPeople.boys || 0); i++) {
 				currentPeople.boys = currentPeople.boys || 0;
 				var	disabled = (i <= currentPeople.boys) ? false : (currentAv + currentPeople.boys - i < 0);
 				if(!disabled){
@@ -489,7 +524,7 @@
 			}
 			
 			// children
-			for(var i=1; i <= parseInt(basePeople.children || 0); i++) {
+			for(var i=1; i <= parseInt(maxPeople.children || 0); i++) {
 				currentPeople.children = currentPeople.children || 0;
 				var	disabled = (i <= currentPeople.children) ? false : (currentAv + currentPeople.children - i < 0);
 				if(!disabled){
@@ -498,7 +533,7 @@
 			}
 			
 			// kids
-			for(var i=1; i <= parseInt(basePeople.kids || 0); i++) {
+			for(var i=1; i <= parseInt(maxPeople.kids || 0); i++) {
 				currentPeople.kids = currentPeople.kids || 0;
 				var	disabled = (i <= currentPeople.kids) ? false : (currentAv + currentPeople.kids - i < 0);
 				if(!disabled){
@@ -616,7 +651,7 @@
 				return {};
 			}
 			
-			var nights = DateUtils.absoluteMoment(rateSold.startDate).diff(DateUtils.absoluteMoment(rateSold.endDate), 'days');
+			var nights = DateUtils.diff(rateSold.endDate, rateSold.startDate);
 			
 			var guestsCount = $$service.guestsCount(peopleObj, extraPeopleObj);
 			if (!guestsCount.standard) {
@@ -783,7 +818,7 @@
 		$$service.updateServiceSoldPrice = function(serviceSold, peopleObj, nights, count, force) {
 			var serviceDays = nights;
 			if (serviceSold.startDate && serviceSold.endDate) {
-				serviceDays = DateUtils.absoluteMoment(serviceSold.endDate).diff(DateUtils.absoluteMoment(serviceSold.startDate), 'days');
+				serviceDays = DateUtils.diff(serviceSold.startDate, serviceSold.endDate);
 			}
 			var oldService = force ? angular.copy(serviceSold) : null;
 			_.assign(serviceSold, $$service.serviceSold(serviceSold.service, peopleObj || serviceSold.people, serviceDays, count || serviceSold.count));
@@ -844,7 +879,7 @@
 		$$service.updateBedSoldPrice = function(bedSold, peopleObj, nights, vatRate, force) {
 			var bedNights = nights;
 			if (bedSold.startDate && bedSold.endDate) {
-				bedNights = DateUtils.absoluteMoment(bedSold.endDate).diff(DateUtils.absoluteMoment(bedSold.startDate), 'days');
+				bedNights = DateUtils.diff(bedSold.startDate, bedSold.endDate);
 			}		
 			var oldBed = force ? angular.copy(bedSold) : null;
 			_.assign(bedSold, $$service.bedSold(bedSold.bed, peopleObj || bedSold.people, bedNights, vatRate || bedSold.amount.vatRate));
@@ -893,7 +928,7 @@
 			
 			var _self = this;
 			
-			var nights = DateUtils.absoluteMoment(res.checkout).diff(DateUtils.absoluteMoment(res.checkin), 'days');
+			var nights = DateUtils.diff(res.checkin, res.checkout);
 			
 			var initialPrice = 0;
 			var finalPrice = 0;
@@ -1383,7 +1418,7 @@
 				// se la camera era attiva calcolo l'importo del checkout
 				if(room.status == 'CONFIRMED'){
 					// se la camera è già terminata, la ignoro
-					if (room.endDate && DateUtils.absoluteMoment(room.endDate).isBefore(nowMoment, "days")) {
+					if (room.endDate && moment(room.endDate).isBefore(nowMoment, "days")) {
 						return;
 					}
 					
@@ -1439,14 +1474,14 @@
 		};
 		
 		$$service.createCancelledRoom = function(room, reservation, targetDate, defaultVat) {
-			var targetMoment = targetDate ? DateUtils.absoluteMoment(targetDate) : DateUtils.absoluteMoment();
+			var targetMoment = targetDate ? moment(targetDate) : moment();
 			
 			// se la camera è già terminata, la restituisco
-			if (room.endDate && DateUtils.absoluteMoment(room.endDate).isBefore(targetMoment, "days")) {
+			if (room.endDate && moment(room.endDate).isBefore(targetMoment, "days")) {
 				return room;
 			}
 			
-			var nights = targetMoment.diff(DateUtils.absoluteMoment(room.startDate || reservation.checkin), "days");
+			var nights = DateUtils.diff(room.startDate || reservation.checkin, targetMoment);
 			
 			var cancelledRoom = angular.copy(room);
 			
@@ -1586,7 +1621,7 @@
 			var earlyCheckoutReservation = angular.copy(res);
 			
 			var now = new Date();
-			var todayMoment = DateUtils.absoluteMoment(now);
+			var todayMoment = moment(now);
 			
 			// salvo amount iniziale
 			earlyCheckoutReservation.initialAmount = angular.copy(earlyCheckoutReservation.totalAmount);
@@ -1596,7 +1631,7 @@
 			var status, title, reason, penalty, freeLabel, penaltyLabel;
 
 			// notti usufruite
-			var nights = todayMoment.diff(DateUtils.absoluteMoment(earlyCheckoutReservation.checkin), 'days');
+			var nights = DateUtils.diff(earlyCheckoutReservation.checkin, todayMoment);
 			
 			// se le notti usufurite sono maggiori di 0: checkout anticipato
 			if(nights > 0){
@@ -1604,7 +1639,7 @@
 					// se la camera era attiva calcolo l'importo del checkout
 					if(room.status == 'CONFIRMED'){
 						// se la camera è già terminata, la ignoro
-						if (room.endDate && DateUtils.absoluteMoment(room.endDate).isBefore(todayMoment, "days")) {
+						if (room.endDate && moment(room.endDate).isBefore(todayMoment, "days")) {
 							room.status = "EARLY_CHECKOUT";
 							return;
 						}
@@ -1695,10 +1730,10 @@
 				return null;
 			}
 			
-			var targetMoment = targetDate ? DateUtils.absoluteMoment(targetDate) : DateUtils.absoluteMoment();
+			var targetMoment = targetDate ? moment(targetDate) : moment();
 			
 			// data fine camera
-			var end = room.endDate ? DateUtils.absoluteMoment(room.endDate) : null;
+			var end = room.endDate ? moment(room.endDate) : null;
 			
 			// se la camera terminerebbe nella targetDate, restituisco una copia
 			// esatta della camera
@@ -1707,9 +1742,9 @@
 			}
 			
 			// data inizio e fine camera
-			var start = DateUtils.absoluteMoment(room.startDate || reservation.checkin);
+			var start = moment(room.startDate || reservation.checkin);
 			// se la camera non ha data di fine specifica, diventa il checkout
-			end = end || DateUtils.absoluteMoment(reservation.checkout);
+			end = end || moment(reservation.checkout);
 			
 			// intervallo originale camera
 			var originalRange = moment.range(start, end);
@@ -1780,7 +1815,7 @@
 			terminatedRoom.status = statusToApply ? statusToApply : room.status;
 			
 			// imposto data di fine
-			terminatedRoom.endDate = DateUtils.absoluteDate(terminationRange.end);
+			terminatedRoom.endDate = moment(terminationRange.end).toDate();
 			
 			// salvo amount iniziale
 			terminatedRoom.initialAmount = angular.copy(room.totalRate.amount);
@@ -1792,7 +1827,7 @@
 			
 			// nel checkout anticipato viene addebitata anche la notte relativa
 			// al giorno corrente se viene effettutato il giorno stesso
-			var ratesRange = terminatedRoom.status == "EARLY_CHECKOUT" && terminationRange.end.isSame(DateUtils.absoluteMoment(), 'day') ? moment.range(terminationRange.start, moment(terminationRange.end).add(1, "days")) : terminationRange;
+			var ratesRange = terminatedRoom.status == "EARLY_CHECKOUT" && terminationRange.end.isSame(moment(), 'day') ? moment.range(terminationRange.start, moment(terminationRange.end).add(1, "days")) : terminationRange;
 			
 			// memorizzo rate giornalieri originari
 			terminatedRoom.totalRate.initialDailyRates = angular.copy(terminatedRoom.totalRate.dailyRates);
@@ -1847,7 +1882,7 @@
 				
 				// disabilito i rate giornalieri non addebitabili
 				_.forEach(terminatedRoom.totalRate.initialDailyRates, function(rate) {
-					var rateDate = DateUtils.absoluteMoment(rate.date);
+					var rateDate = moment(rate.date);
 		
 					// se la notte è da addebitare, ne adeguo l'importo
 					if (chargeRange.contains(rateDate, {exclusive: true})) {
@@ -1924,7 +1959,7 @@
 				return false;
 			}
 			
-			var serviceRange = moment.range(DateUtils.absoluteMoment(serviceSold.startDate || terminationRange.start), DateUtils.absoluteMoment(serviceSold.endDate || terminationRange.end));
+			var serviceRange = moment.range(moment(serviceSold.startDate || terminationRange.start), moment(serviceSold.endDate || terminationRange.end));
 			
 			// se il servizio non è in corso, lo ignoro
 			if (!serviceRange.contains(terminationRange.end)) {
@@ -1958,16 +1993,16 @@
 					var dailyAmount = $$service.serviceSold(serviceSold.service, serviceSold.people, 1, serviceSold.count).amount;
 					
 					// data inizio e fine servizio
-					var serviceStartDate = DateUtils.absoluteMoment(serviceSold.startDate || roomRange.start);
-					var serviceEndDate = DateUtils.absoluteMoment(serviceSold.endDate || roomRange.end);
+					var serviceStartDate = moment(serviceSold.startDate || roomRange.start);
+					var serviceEndDate = moment(serviceSold.endDate || roomRange.end);
 					
-					for (var date=DateUtils.absoluteMoment(roomRange.start); date.isBefore(DateUtils.absoluteMoment(roomRange.end), "days"); date.add(1, "days")) {
+					for (var date=moment(roomRange.start); date.isBefore(moment(roomRange.end), "days"); date.add(1, "days")) {
 						serviceSold.dailyRates.push({"date": date.toDate(), amount: date.isBefore(serviceStartDate, "days") || date.isAfter(serviceEndDate, "days") ? null : dailyAmount, disabled: date.isSameOrAfter(terminationRange.end, "days")});
 					}
 				}
 				
 				// imposto data fine
-				serviceSold.endDate = DateUtils.absoluteDate(terminationRange.end);
+				serviceSold.endDate = moment(terminationRange.end).toDate();
 			}
 			
 			return true;
@@ -2010,16 +2045,16 @@
 					var dailyAmount = $$service.bedSold(bedSold.bed, bedSold.people, 1, defaultVat).amount;
 					
 					// data inizio e fine letto
-					var bedStartDate = DateUtils.absoluteMoment(bedSold.startDate || roomRange.start);
-					var bedEndDate = DateUtils.absoluteMoment(bedSold.endDate || roomRange.end);
+					var bedStartDate = moment(bedSold.startDate || roomRange.start);
+					var bedEndDate = moment(bedSold.endDate || roomRange.end);
 					
-					for (var date=DateUtils.absoluteMoment(roomRange.start); date.isBefore(DateUtils.absoluteMoment(roomRange.end), "days"); date.add(1, "days")) {
+					for (var date=moment(roomRange.start); date.isBefore(moment(roomRange.end), "days"); date.add(1, "days")) {
 						bedSold.dailyRates.push({"date": date.toDate(), amount: date.isBefore(bedStartDate, "days") || date.isAfter(bedEndDate, "days") ? null : dailyAmount, disabled: date.isSameOrAfter(terminationRange.end, "days")});
 					}
 				}
 				
 				// imposto data fine
-				bedSold.endDate = DateUtils.absoluteDate(terminationRange.end);
+				bedSold.endDate = moment(terminationRange.end).toDate();
 			}
 				
 			return true;

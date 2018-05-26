@@ -10,14 +10,14 @@
 	function InfinitePagingFactory(filterFilter, $log, $timeout, $q, Notification) {
 		var $$service = function(/** Service to call for elements OR elements arrays */ source, 
 				/** Params Map Object */ params, /** Name of the service's  function */ serviceFnName, postBody) {
-			
-			var _self = this;
 	 
+			var _self = this;
+			
 			this.source = source;
-			this.$$sourceType = angular.isArray(source) ? 1 : (angular.isObject(source) ? 2 : -1);
+			this.$$sourceType = angular.isArray(this.source) ? 1 : (angular.isObject(this.source) ? 2 : -1);
 			this.serviceFnName = serviceFnName ? serviceFnName : 'all';
 			this.params = params;
-			this.defaultSize = 30;
+			this.defaultSize = 10;
 			this.page = 0;
 			this.totalPages = 0;
 		    this.items = [];
@@ -29,6 +29,7 @@
 		    this.postBody = postBody,
 		    
 		    this.nextPage = function() {
+		    	// reference to this Object
 	    		var deferred = $q.defer();
 	    		
 		    	return $timeout(function() {	    		
@@ -91,7 +92,7 @@
 			    			var start = _self.params.size * _self.page;
 			    			var end = start + _self.params.size - 1;		    			
 			    			
-			    			if (end < arr.length) {
+			    			if (end > arr.length) {
 			    				end = arr.length;
 			    				_self.lastPage = true;
 			    			}
@@ -99,7 +100,7 @@
 			    			var newItems = arr.slice(start, end);
 			    			
 			    			if (newItems && newItems.length > 0) {	
-			    				if (angular.isDefined(_self.params.filter)) {
+			    				if (_self.params.filter) {
 			        				_self.items = [];
 			        			}
 			    				
@@ -115,8 +116,11 @@
 			        			_self.newItems = false;
 			        		}
 			    			
-			    			_self.busy = false;
 			    			_self.executed = true;
+			    			
+			    			$timeout(function() {
+			    				_self.busy = false;
+			    			});
 			    			
 			    			deferred.resolve();
 			    		
@@ -207,6 +211,11 @@
 		    };
 		    
 		    this.reload = function() {
+	// // workaround per le promise
+		    	if(!_self) {
+		    		return;
+		    	}
+		    	
 		    	_self.reset();
 			    return _self.nextPage();
 		    };
@@ -220,7 +229,7 @@
 		    	_self.totalItems = 0;
 			    _self.items = [];
 			    _self.newItems = false;
-	// this.resetParams();
+	// _self.resetParams();
 		    };
 		    
 		    this.resetParams = function(){
@@ -235,6 +244,23 @@
 		    	_self.resetParams();
 		    	_self.reload();
 		    };
+		    
+		    // per md-virtual-repeat 
+		    
+	        this.getItemAtIndex = function(index) {
+	            if (!_self.items[index]) {
+	              _self.nextPage();
+	              return null;
+	            }
+
+	            console.log("Getting item " + index);
+	            return _self.items[index];
+	        };
+
+	        this.getLength = function() {
+	        	console.log("Length " + _self.totalItems);
+	        	return _self.totalItems;
+	        };
 		};
 		
 		return $$service;

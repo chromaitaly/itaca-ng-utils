@@ -6,7 +6,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("itaca.utils").factory("requestTimeoutInterceptor", RequestTimeoutInterceptor);
+	angular.module("itaca.utils").factory("RequestTimeoutInterceptor", RequestTimeoutInterceptor);
 	
 	/* @ngInject */
 	function RequestTimeoutInterceptor($q, $translate) {

@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("itaca.utils").factory('offlineInterceptor', OfflineInterceptorFactory);
+	angular.module("itaca.utils").factory('OfflineInterceptor', OfflineInterceptorFactory);
 	
 	/* @ngInject */
 	function OfflineInterceptorFactory($q, $log) {
@@ -25,5 +25,7 @@
 
 			return config;
 		};
+		
+		return service;
 	}
 })();

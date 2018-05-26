@@ -5,16 +5,22 @@
 (function() {
 	'use strict';
 	
-	angular.module("itaca.utils").factory('jsonDateInterceptor', JsonDateInterceptorFactory);
+	angular.module("itaca.utils").factory('DateInterceptor', DateInterceptorFactory);
 	
 	/* @ngInject */
-	function JsonDateInterceptorFactory(DateUtils) {
+	function DateInterceptorFactory(DateUtils) {
 		var service = {};
 		
 		service.response = function (response) {
 	    	DateUtils.convertDateStringsToDates(response);
 	    	
 	    	return response;
+	    };
+	    
+	    service.request = function(config) {
+	    	DateUtils.convertDatesToUTC(config.data);
+	    	
+	        return config;
 	    };
 		
 		return service;

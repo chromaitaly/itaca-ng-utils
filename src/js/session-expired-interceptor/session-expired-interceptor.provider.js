@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("itaca.utils").provider('sessionExpiredInterceptor', SessionExpiredInterceptorProvider);
+	angular.module("itaca.utils").provider('SessionExpiredInterceptor', SessionExpiredInterceptorProvider);
 	
 	function SessionExpiredInterceptorProvider() {
 		var $$redirectUrl = "/login";

@@ -11,14 +11,20 @@
 	function DateUtilsFactory($log, moment, REGEXP, AppOptions){ 
 		var service = {};
 		
-		service.absoluteDate = function(date, keepTime) {
-			return service.absoluteMoment(date, keepTime).toDate();
+		service.absoluteDate = function(date, resetTime) {
+			return service.absoluteMoment(date, resetTime).toDate();
 		};
 		
-		service.absoluteMoment = function(date, keepTime) {
-			var m = date ? moment(date) : moment();
-			var absMoment = moment(m).utc([m.year(), m.month(), m.date()]);
-			return keepTime ? absMoment : absMoment.startOf("day");
+		service.absoluteMoment = function(date, resetTime) {
+			var m = moment(date || undefined);
+			
+			if (!m.isValid()) {
+				throw new Error("The date is not valid!");
+			}
+			
+//			var absMoment = moment({y: m.year(), M: m.month(), d: m.date(), h: m.hour(), m: m.minute(), s: m.second(), ms: m.millisecond()}).utc();
+			var absMoment = moment(m).utcOffset(0, true);
+			return resetTime ? absMoment.startOf("day") : absMoment;
 		};
 		
 		service.dateForTimezone = function(date, timeZoneId) {
@@ -26,8 +32,8 @@
 		};
 		
 		service.hotelDate = function(date) {
-			if (AppOptions.hotel && AppOptions.hotel.addressInfo && AppOptions.hotel.addressInfo.timeZoneId) {
-				return service.dateForTimezone(AppOptions.hotel.addressInfo.timeZoneId);
+			if (AppOptions.hotel && AppOptions.hotel.addressInfo && (AppOptions.hotel.addressInfo.timeZoneId || AppOptions.hotel.addressInfo.offset)) {
+				return AppOptions.hotel.addressInfo.timeZoneId ? service.dateForTimezone(AppOptions.hotel.addressInfo.timeZoneId) : moment(date).utcOffset(AppOptions.hotel.addressInfo.offset/60);
 			
 			} else {
 				// AppOptions.defaultOffset è in secondi
@@ -68,6 +74,35 @@
 		            // Recurse into object
 		        	if (currentLevel < maxDeepLevel) {
 		        		service.convertDateStringsToDates(value, maxDeepLevel, currentLevel+1);
+		        	}
+		        }
+		    }
+		};
+		
+		service.convertDatesToUTC = function(input, maxDeepLevel, currentLevel) {
+		    // Ignore things that aren't objects.
+		    if (typeof input !== "object"){ return input;}
+		    
+		    maxDeepLevel = maxDeepLevel ? maxDeepLevel : 10;
+		    currentLevel = currentLevel ? currentLevel : 0; 
+		    
+		    for (var key in input) {
+		        if (!input.hasOwnProperty(key)){ continue;}
+
+		        var value = input[key];
+		        
+		        if (angular.isDate(value) || moment.isMoment(value)) {
+		        	try {
+		        		input[key] = service.absoluteDate(value);
+		        		
+		        	} catch(e) {
+		        		$log.warn("Error converting date to utc'" + data + "': " + e);
+		        	}
+		        	
+		        } else if (typeof value === "object") {
+		            // Recurse into object
+		        	if (currentLevel < maxDeepLevel) {
+		        		service.convertDatesToUTC(value, maxDeepLevel, currentLevel+1);
 		        	}
 		        }
 		    }
@@ -128,6 +163,14 @@
 			arrivalTime = (arrivalTime.hours() >= start.hours() && arrivalTime.hours() <= 23) ? arrivalTime : arrivalTime.add(1, "days");
 			
 			return moment.range(start, end).contains(arrivalTime);
+		};
+		
+		service.diff = function(start, end, unit, showFloat) {
+			return moment(end).startOf("day").diff(moment(start).startOf("day"), unit || "days", _.isBoolean(showFloat) ? showFloat : false);
+		};
+		
+		service.to = function(start, end, noSuffix) {
+			return moment(start).startOf("day").to(moment(end).startOf("day"), _.isBoolean(noSuffix) ? noSuffix : false);
 		};
 		
 		return service;	

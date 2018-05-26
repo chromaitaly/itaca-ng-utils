@@ -912,9 +912,9 @@
 
 (function() {
     "use strict";
-    JsonDateInterceptorFactory.$inject = [ "DateUtils" ];
-    angular.module("itaca.utils").factory("jsonDateInterceptor", JsonDateInterceptorFactory);
-    function JsonDateInterceptorFactory(DateUtils) {
+    DateInterceptorFactory.$inject = [ "DateUtils" ];
+    angular.module("itaca.utils").factory("DateInterceptor", DateInterceptorFactory);
+    function DateInterceptorFactory(DateUtils) {
         var service = {};
         service.response = function(response) {
             DateUtils.convertDateStringsToDates(response);
@@ -1182,7 +1182,7 @@
 (function() {
     "use strict";
     OfflineInterceptorFactory.$inject = [ "$q", "$log" ];
-    angular.module("itaca.utils").factory("offlineInterceptor", OfflineInterceptorFactory);
+    angular.module("itaca.utils").factory("OfflineInterceptor", OfflineInterceptorFactory);
     function OfflineInterceptorFactory($q, $log) {
         var service = {};
         service.request = function(config) {
@@ -1340,7 +1340,7 @@
 (function() {
     "use strict";
     RequestTimeoutInterceptor.$inject = [ "$q", "$translate" ];
-    angular.module("itaca.utils").factory("requestTimeoutInterceptor", RequestTimeoutInterceptor);
+    angular.module("itaca.utils").factory("RequestTimeoutInterceptor", RequestTimeoutInterceptor);
     function RequestTimeoutInterceptor($q, $translate) {
         var $$service = {};
         $$service.responseError = function(rejection) {
@@ -2951,7 +2951,7 @@
 
 (function() {
     "use strict";
-    angular.module("itaca.utils").provider("sessionExpiredInterceptor", SessionExpiredInterceptorProvider);
+    angular.module("itaca.utils").provider("SessionExpiredInterceptor", SessionExpiredInterceptorProvider);
     function SessionExpiredInterceptorProvider() {
         var $$redirectUrl = "/login";
         this.init = function(redirectUrl) {
