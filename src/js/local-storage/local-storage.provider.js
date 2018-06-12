@@ -18,12 +18,12 @@
 			}
 		};
 
-		this.$get = /* @ngInject */ function(AppOptions, localStorageService) {
-			return new LocalStorage(AppOptions, localStorageService, $$reservationStorageName, $$quoteStorageName);
+		this.$get = /* @ngInject */ function(AppOptions, DateUtils, localStorageService) {
+			return new LocalStorage(AppOptions, DateUtils, localStorageService, $$reservationStorageName, $$quoteStorageName);
 		};
 	}
 	
-	function LocalStorage(AppOptions, localStorageService, reservationStorageName, quoteStorageName) {
+	function LocalStorage(AppOptions, DateUtils, localStorageService, reservationStorageName, quoteStorageName) {
 		var $$service = this;
 	
 		this.$$reservationStorageName = reservationStorageName || "X-ITACA-RSV";
