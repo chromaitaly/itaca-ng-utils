@@ -2,7 +2,7 @@
 ********************************************************************************
 ********************************************************************************
 ***	   itaca-ng-utils														 
-***    Copyright (C) 2016   Chroma Italy Hotels srl	 
+***    Copyright (C) 2016-2018   Chroma Italy Hotels srl	 
 ***                                                                          
 ***    This program is free software: you can redistribute it and/or modify  
 ***    it under the terms of the GNU General Public License as published by  
@@ -225,24 +225,45 @@
 
 (function() {
     "use strict";
+    DateInterceptorFactory.$inject = [ "DateUtils" ];
+    angular.module("itaca.utils").factory("DateInterceptor", DateInterceptorFactory);
+    function DateInterceptorFactory(DateUtils) {
+        var service = {};
+        service.response = function(response) {
+            DateUtils.convertDateStringsToDates(response);
+            return response;
+        };
+        service.request = function(config) {
+            DateUtils.convertDatesToUTC(config.data);
+            return config;
+        };
+        return service;
+    }
+})();
+
+(function() {
+    "use strict";
     DateUtilsFactory.$inject = [ "$log", "moment", "REGEXP", "AppOptions" ];
     angular.module("itaca.utils").factory("DateUtils", DateUtilsFactory);
     function DateUtilsFactory($log, moment, REGEXP, AppOptions) {
         var service = {};
-        service.absoluteDate = function(date, keepTime) {
-            return service.absoluteMoment(date, keepTime).toDate();
+        service.absoluteDate = function(date, resetTime) {
+            return service.absoluteMoment(date, resetTime).toDate();
         };
-        service.absoluteMoment = function(date, keepTime) {
-            var m = date ? moment(date) : moment();
-            var absMoment = moment(m).utc([ m.year(), m.month(), m.date() ]);
-            return keepTime ? absMoment : absMoment.startOf("day");
+        service.absoluteMoment = function(date, resetTime) {
+            var m = moment(date || undefined);
+            if (!m.isValid()) {
+                throw new Error("The date is not valid!");
+            }
+            var absMoment = moment(m).utcOffset(0, true);
+            return resetTime ? absMoment.startOf("day") : absMoment;
         };
         service.dateForTimezone = function(date, timeZoneId) {
             return moment.tz(date, timeZoneId);
         };
         service.hotelDate = function(date) {
-            if (AppOptions.hotel && AppOptions.hotel.addressInfo && AppOptions.hotel.addressInfo.timeZoneId) {
-                return service.dateForTimezone(AppOptions.hotel.addressInfo.timeZoneId);
+            if (AppOptions.hotel && AppOptions.hotel.addressInfo && (AppOptions.hotel.addressInfo.timeZoneId || AppOptions.hotel.addressInfo.offset)) {
+                return AppOptions.hotel.addressInfo.timeZoneId ? service.dateForTimezone(AppOptions.hotel.addressInfo.timeZoneId) : moment(date).utcOffset(AppOptions.hotel.addressInfo.offset / 60);
             } else {
                 return moment(date).utcOffset((AppOptions.defaultOffset || 0) / 60);
             }
@@ -263,18 +284,38 @@
                 if (typeof value === "string" && (match = value.match($$pattern))) {
                     var data = match[0];
                     try {
-                        var milliseconds = Date.parse(data);
-                        if (!isNaN(milliseconds)) {
-                            input[key] = new Date(milliseconds);
-                        }
+                        input[key] = moment(data, moment.HTML5_FMT.DATETIME_LOCAL_MS).toDate();
                         data = undefined;
-                        milliseconds = undefined;
                     } catch (e) {
                         $log.warn("Error converting date '" + data + "': " + e);
                     }
                 } else if (typeof value === "object") {
                     if (currentLevel < maxDeepLevel) {
                         service.convertDateStringsToDates(value, maxDeepLevel, currentLevel + 1);
+                    }
+                }
+            }
+        };
+        service.convertDatesToUTC = function(input, maxDeepLevel, currentLevel) {
+            if (typeof input !== "object") {
+                return input;
+            }
+            maxDeepLevel = maxDeepLevel ? maxDeepLevel : 10;
+            currentLevel = currentLevel ? currentLevel : 0;
+            for (var key in input) {
+                if (!input.hasOwnProperty(key)) {
+                    continue;
+                }
+                var value = input[key];
+                if (angular.isDate(value) || moment.isMoment(value)) {
+                    try {
+                        input[key] = service.absoluteDate(value);
+                    } catch (e) {
+                        $log.warn("Error converting date to utc'" + data + "': " + e);
+                    }
+                } else if (typeof value === "object") {
+                    if (currentLevel < maxDeepLevel) {
+                        service.convertDatesToUTC(value, maxDeepLevel, currentLevel + 1);
                     }
                 }
             }
@@ -314,6 +355,12 @@
             end = end.hours() >= start.hours() && end.hours() <= 23 ? end : end.add(1, "days");
             arrivalTime = arrivalTime.hours() >= start.hours() && arrivalTime.hours() <= 23 ? arrivalTime : arrivalTime.add(1, "days");
             return moment.range(start, end).contains(arrivalTime);
+        };
+        service.diff = function(start, end, unit, showFloat) {
+            return moment(end).startOf("day").diff(moment(start).startOf("day"), unit || "days", _.isBoolean(showFloat) ? showFloat : false);
+        };
+        service.to = function(start, end, noSuffix) {
+            return moment(start).startOf("day").to(moment(end).startOf("day"), _.isBoolean(noSuffix) ? noSuffix : false);
         };
         return service;
     }
@@ -740,11 +787,12 @@
     angular.module("itaca.utils").factory("InfinitePaging", InfinitePagingFactory);
     function InfinitePagingFactory(filterFilter, $log, $timeout, $q, Notification) {
         var $$service = function(source, params, serviceFnName, postBody) {
+            var _self = this;
             this.source = source;
             this.$$sourceType = angular.isArray(this.source) ? 1 : angular.isObject(this.source) ? 2 : -1;
             this.serviceFnName = serviceFnName ? serviceFnName : "all";
             this.params = params;
-            this.defaultSize = 30;
+            this.defaultSize = 10;
             this.page = 0;
             this.totalPages = 0;
             this.items = [];
@@ -753,7 +801,6 @@
             this.busy = false;
             this.executed = false;
             this.newItems = false, this.postBody = postBody, this.nextPage = function() {
-                var _self = this;
                 var deferred = $q.defer();
                 return $timeout(function() {
                     if (_self.source) {
@@ -798,13 +845,13 @@
                             _self.totalPages = Math.ceil(_self.totalItems / _self.params.size);
                             var start = _self.params.size * _self.page;
                             var end = start + _self.params.size - 1;
-                            if (end < arr.length) {
+                            if (end > arr.length) {
                                 end = arr.length;
                                 _self.lastPage = true;
                             }
                             var newItems = arr.slice(start, end);
                             if (newItems && newItems.length > 0) {
-                                if (angular.isDefined(_self.params.filter)) {
+                                if (_self.params.filter) {
                                     _self.items = [];
                                 }
                                 angular.forEach(newItems, function(value, key) {
@@ -815,8 +862,10 @@
                             } else {
                                 _self.newItems = false;
                             }
-                            _self.busy = false;
                             _self.executed = true;
+                            $timeout(function() {
+                                _self.busy = false;
+                            });
                             deferred.resolve();
                         } else if (_self.$$sourceType == 2) {
                             if (_self.serviceFnName && !angular.isFunction(_self.source[_self.serviceFnName])) {
@@ -878,49 +927,47 @@
                 });
             };
             this.reload = function() {
-                if (!this) {
+                if (!_self) {
                     return;
                 }
-                this.reset();
-                return this.nextPage();
+                _self.reset();
+                return _self.nextPage();
             };
             this.reset = function() {
-                this.busy = false;
-                this.executed = true;
-                this.lastPage = false;
-                this.page = 0;
-                this.totalPages = 0;
-                this.totalItems = 0;
-                this.items = [];
-                this.newItems = false;
+                _self.busy = false;
+                _self.executed = true;
+                _self.lastPage = false;
+                _self.page = 0;
+                _self.totalPages = 0;
+                _self.totalItems = 0;
+                _self.items = [];
+                _self.newItems = false;
             };
             this.resetParams = function() {
-                _.forEach(this.params, function(value, key, collection) {
+                _.forEach(_self.params, function(value, key, collection) {
                     if (key != "size" && key != "page" && key != "sort") {
                         collection[key] = undefined;
                     }
                 });
             };
             this.resetAndReload = function() {
-                this.resetParams();
-                this.reload();
+                _self.resetParams();
+                _self.reload();
+            };
+            this.getItemAtIndex = function(index) {
+                if (!_self.items[index]) {
+                    _self.nextPage();
+                    return null;
+                }
+                console.log("Getting item " + index);
+                return _self.items[index];
+            };
+            this.getLength = function() {
+                console.log("Length " + _self.totalItems);
+                return _self.totalItems;
             };
         };
         return $$service;
-    }
-})();
-
-(function() {
-    "use strict";
-    DateInterceptorFactory.$inject = [ "DateUtils" ];
-    angular.module("itaca.utils").factory("DateInterceptor", DateInterceptorFactory);
-    function DateInterceptorFactory(DateUtils) {
-        var service = {};
-        service.response = function(response) {
-            DateUtils.convertDateStringsToDates(response);
-            return response;
-        };
-        return service;
     }
 })();
 
@@ -939,11 +986,11 @@
                 $$quoteStorageName = quoteStorageName;
             }
         };
-        this.$get = [ "localStorageService", function(localStorageService) {
-            return new LocalStorage(localStorageService, $$reservationStorageName, $$quoteStorageName);
+        this.$get = [ "AppOptions", "DateUtils", "localStorageService", function(AppOptions, DateUtils, localStorageService) {
+            return new LocalStorage(AppOptions, DateUtils, localStorageService, $$reservationStorageName, $$quoteStorageName);
         } ];
     }
-    function LocalStorage(localStorageService, reservationStorageName, quoteStorageName) {
+    function LocalStorage(AppOptions, DateUtils, localStorageService, reservationStorageName, quoteStorageName) {
         var $$service = this;
         this.$$reservationStorageName = reservationStorageName || "X-ITACA-RSV";
         this.$$quoteStorageName = quoteStorageName || "X-ITACA-QUOTE";
@@ -1194,6 +1241,7 @@
             }
             return config;
         };
+        return service;
     }
 })();
 
@@ -1367,7 +1415,7 @@
         var $$service = {};
         $$service.clearReservation = function(reservation, keepSearchParams) {
             if (keepSearchParams) {
-                ObjectUtils.clearObject(reservation, /^(check(?:in$|out$))|^people$|^requestPeople$|^hotelId$/);
+                ObjectUtils.clearObject(reservation, /^(check(?:in$|out$))|^people$|^requestPeople$|^hotelId$|^hotel$/);
             } else {
                 ObjectUtils.clearObject(reservation);
             }
@@ -1386,23 +1434,32 @@
                 });
             }
             DateUtils.convertDateStringsToDates(lastHotelRes);
-            if (lastHotelRes && lastHotelRes.checkin && lastHotelRes.checkout && moment(lastHotelRes.checkin).isBefore(DateUtils.absoluteMoment(), "days")) {
+            if (lastHotelRes && lastHotelRes.checkin && lastHotelRes.checkout && moment(lastHotelRes.checkin).isBefore(moment(), "days")) {
                 $$service.clearReservation(lastHotelRes);
                 LocalStorage.removeReservation(hotelId, guestId);
             }
             return lastHotelRes;
         };
+        $$service.removeLastReservation = function(hotelId, guestId) {
+            if (!hotelId) {
+                hotelId = RESERVATION.hotel && RESERVATION.hotel.id ? RESERVATION.hotel.id : null;
+            }
+            if (!guestId) {
+                guestId = RESERVATION.guest && RESERVATION.guest.id ? RESERVATION.guest.id : null;
+            }
+            return LocalStorage.removeReservation(hotelId, guestId);
+        };
         $$service.availableNights = function(checkin, checkout, targetDate) {
             if (!checkin || !checkout) {
                 return null;
             }
-            var checkinMoment = DateUtils.absoluteMoment(checkin);
-            var checkoutMoment = DateUtils.absoluteMoment(checkout);
-            var targetMoment = _.isBoolean(targetDate) && !targetDate ? DateUtils.absoluteMoment(checkin) : targetDate ? DateUtils.absoluteMoment(targetDate) : DateUtils.absoluteMoment();
+            var checkinMoment = moment(checkin);
+            var checkoutMoment = moment(checkout);
+            var targetMoment = _.isBoolean(targetDate) && !targetDate ? moment(checkin) : targetDate ? moment(targetDate) : moment();
             if (checkoutMoment.isAfter(targetMoment, "days") && checkinMoment.isBefore(targetMoment, "days")) {
-                return checkoutMoment.diff(targetMoment, "days");
+                return DateUtils.diff(targetMoment, checkoutMoment);
             } else {
-                return checkoutMoment.diff(checkinMoment, "days");
+                return DateUtils.diff(checkinMoment, checkoutMoment);
             }
         };
         $$service.calculateGuestDocuments = function(room) {
@@ -1422,10 +1479,10 @@
             if (!_.isPlainObject(people)) {
                 people = {};
             }
-            people.adults = people.adults || 0;
-            people.boys = people.boys || 0;
-            people.children = people.children || 0;
-            people.kids = people.kids || 0;
+            people.adults = NumberUtils.defaultNumber(people.adults);
+            people.boys = NumberUtils.defaultNumber(people.boys);
+            people.children = NumberUtils.defaultNumber(people.children);
+            people.kids = NumberUtils.defaultNumber(people.kids);
             return people;
         };
         $$service.peopleSummary = function(peopleObj, extraPeopleObj) {
@@ -1443,30 +1500,33 @@
             } else {
                 return $translate([ "people.adult", "people.adults", "people.child", "people.children", "people.boy", "people.boys", "people.kid", "people.kids" ]).then(function(translations) {
                     var peopleSummary = "";
-                    if (peopleObj.adults || extraPeopleObj.adults) {
+                    var hasAdults = peopleObj.adults > 0 || extraPeopleObj.adults > 0;
+                    if (hasAdults) {
                         var adults = parseInt(peopleObj.adults || 0) + parseInt(extraPeopleObj.adults || 0);
                         if (adults > 0) {
                             peopleSummary += adults + " " + (adults < 2 ? translations["people.adult"] : translations["people.adults"]);
                         }
                     }
-                    if (peopleObj.boys || extraPeopleObj.boys) {
+                    var hasBoys = peopleObj.boys > 0 || extraPeopleObj.boys > 0;
+                    if (hasBoys) {
                         var boys = parseInt(peopleObj.boys || 0) + parseInt(extraPeopleObj.boys || 0);
                         if (boys > 0) {
-                            peopleSummary += peopleObj.adults || extraPeopleObj.adults ? ", " : "";
+                            peopleSummary += hasAdults ? ", " : "";
                             peopleSummary += boys + " " + (boys < 2 ? translations["people.boy"] : translations["people.boys"]);
                         }
                     }
-                    if (peopleObj.children || extraPeopleObj.children) {
+                    var hasChildren = peopleObj.children > 0 || extraPeopleObj.children > 0;
+                    if (hasChildren) {
                         var children = parseInt(peopleObj.children || 0) + parseInt(extraPeopleObj.children || 0);
                         if (children > 0) {
-                            peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys ? ", " : "";
+                            peopleSummary += hasAdults || hasBoys ? ", " : "";
                             peopleSummary += children + " " + (children < 2 ? translations["people.child"] : translations["people.children"]);
                         }
                     }
-                    if (peopleObj.kids || extraPeopleObj.kids) {
+                    if (peopleObj.kids > 0 || extraPeopleObj.kids > 0) {
                         var kids = parseInt(peopleObj.kids || 0) + parseInt(extraPeopleObj.kids || 0);
                         if (kids > 0) {
-                            peopleSummary += peopleObj.adults || extraPeopleObj.adults || peopleObj.boys || extraPeopleObj.boys || peopleObj.children || extraPeopleObj.children ? ", " : "";
+                            peopleSummary += hasAdults || hasBoys || hasChildren ? ", " : "";
                             peopleSummary += kids + " " + (kids < 2 ? translations["people.kid"] : translations["people.kids"]);
                         }
                     }
@@ -1499,75 +1559,58 @@
             });
             return people;
         };
-        $$service.totalPeople = function(peopleObj, peopleExtra) {
-            peopleObj = peopleObj || {
-                adults: 0,
-                boys: 0,
-                children: 0,
-                kids: 0
-            };
-            peopleExtra = peopleExtra || {
-                adults: 0,
-                boys: 0,
-                children: 0,
-                kids: 0
-            };
-            var totalPeople = {
-                adults: NumberUtils.defaultNumber(peopleObj.adults) + NumberUtils.defaultNumber(peopleExtra.adults),
-                boys: NumberUtils.defaultNumber(peopleObj.boys) + NumberUtils.defaultNumber(peopleExtra.boys),
-                children: NumberUtils.defaultNumber(peopleObj.children) + NumberUtils.defaultNumber(peopleExtra.children),
-                kids: NumberUtils.defaultNumber(peopleObj.kids) + NumberUtils.defaultNumber(peopleExtra.kids)
-            };
-            return totalPeople;
-        };
-        $$service.guestsCount = function(peopleObj, peopleExtra) {
-            peopleObj = peopleObj || {
-                adults: 0,
-                boys: 0,
-                children: 0,
-                kids: 0
-            };
-            peopleExtra = peopleExtra || {
-                adults: 0,
-                boys: 0,
-                children: 0,
-                kids: 0
-            };
-            var standard = 0;
-            if (!_.isNil(peopleObj.adults) && peopleObj.adults > 0) {
-                standard += parseInt(peopleObj.adults);
+        $$service.guestsCount = function(people, extraPeople) {
+            people = $$service.normalizePeople(people);
+            extraPeople = $$service.normalizePeople(extraPeople);
+            var standard = 0, hasAdults = false, hasChildren = false;
+            if (!_.isNil(people.adults) && people.adults > 0) {
+                hasAdults = true;
+                standard += parseInt(people.adults);
             }
-            if (!_.isNil(peopleObj.boys) && peopleObj.boys > 0) {
-                standard += parseInt(peopleObj.boys);
+            if (!_.isNil(people.boys) && people.boys > 0) {
+                hasChildren = true;
+                standard += parseInt(people.boys);
             }
-            if (!_.isNil(peopleObj.children) && peopleObj.children > 0) {
-                standard += parseInt(peopleObj.children);
+            if (!_.isNil(people.children) && people.children > 0) {
+                hasChildren = true;
+                standard += parseInt(people.children);
             }
-            if (!_.isNil(peopleObj.kids) && peopleObj.kids > 0) {
-                standard += parseInt(peopleObj.kids);
+            if (!_.isNil(people.kids) && people.kids > 0) {
+                hasChildren = true;
+                standard += parseInt(people.kids);
             }
-            var extra = 0, extraHasChildren = false;
-            if (!_.isNil(peopleExtra.adults) && peopleExtra.adults > 0) {
-                extra += parseInt(peopleExtra.adults);
+            var extra = 0, extraHasAdults = false, extraHasChildren = false;
+            if (!_.isNil(extraPeople.adults) && extraPeople.adults > 0) {
+                extraHasAdults = true;
+                extra += parseInt(extraPeople.adults);
             }
-            if (!_.isNil(peopleExtra.boys) && peopleExtra.boys > 0) {
+            if (!_.isNil(extraPeople.boys) && extraPeople.boys > 0) {
                 extraHasChildren = true;
-                extra += parseInt(peopleExtra.boys);
+                extra += parseInt(extraPeople.boys);
             }
-            if (!_.isNil(peopleExtra.children) && peopleExtra.children > 0) {
+            if (!_.isNil(extraPeople.children) && extraPeople.children > 0) {
                 extraHasChildren = true;
-                extra += parseInt(peopleExtra.children);
+                extra += parseInt(extraPeople.children);
             }
-            if (!_.isNil(peopleExtra.kids) && peopleExtra.kids > 0) {
+            if (!_.isNil(extraPeople.kids) && extraPeople.kids > 0) {
                 extraHasChildren = true;
-                extra += parseInt(peopleExtra.kids);
+                extra += parseInt(extraPeople.kids);
             }
             return {
                 standard: standard,
+                hasAdults: hasAdults,
+                hasChildren: hasChildren,
                 extra: extra,
+                extraHasAdults: extraHasAdults,
                 extraHasChildren: extraHasChildren,
                 total: standard + extra
             };
+        };
+        $$service.guestsCountByRooms = function(rooms, checkBeds) {
+            if (!rooms || !_.isArray(rooms)) {
+                return false;
+            }
+            return $$service.guestsCount($$service.peopleByRooms(rooms, checkBeds), $$service.extraPeopleByRooms(rooms, checkBeds));
         };
         $$service.guestsCountByBeds = function(standardBeds, otherBeds, maxOtherBeds) {
             var standard = 0;
@@ -1604,6 +1647,16 @@
                 extraHasAdults: extraHasAdults,
                 extraHasChildren: extraHasChildren,
                 partial: standard + extra
+            };
+        };
+        $$service.totalPeople = function(people, extraPeople) {
+            people = $$service.normalizePeople(people);
+            extraPeople = $$service.normalizePeople(extraPeople);
+            return {
+                adults: people.adults + extraPeople.adults,
+                boys: people.boys + extraPeople.boys,
+                children: people.children + extraPeople.children,
+                kids: people.kids + extraPeople.kids
             };
         };
         $$service.totalPeopleByRooms = function(rooms, checkBeds) {
@@ -1667,40 +1720,40 @@
             });
             return people;
         };
-        $$service.peopleByMax = function(basePeople, maxPeople, maxCount) {
-            if (!basePeople && !maxPeople) {
+        $$service.peopleByMax = function(currentPeople, maxPeople, maxCount) {
+            if (!currentPeople && !maxPeople) {
                 return {};
             }
-            if (!basePeople) {
+            if (!currentPeople) {
                 return maxCount > 0 ? $$service.peopleByMax(maxPeople, {
                     adults: maxCount
                 }, maxCount) : angular.copy(maxPeople);
             }
             if (!maxPeople) {
-                return maxCount > 0 ? $$service.peopleByMax(basePeople, {
+                return maxCount > 0 ? $$service.peopleByMax(currentPeople, {
                     adults: maxCount
-                }, maxCount) : angular.copy(basePeople);
+                }, maxCount) : angular.copy(currentPeople);
             }
             var max = maxCount;
             if (!max) {
                 max = -1;
             }
-            var adults = _.isNil(basePeople.adults) ? 0 : _.isNil(maxPeople.adults) ? basePeople.adults : basePeople.adults <= maxPeople.adults ? basePeople.adults : maxPeople.adults;
+            var adults = _.isNil(currentPeople.adults) ? 0 : _.isNil(maxPeople.adults) ? currentPeople.adults : currentPeople.adults <= maxPeople.adults ? currentPeople.adults : maxPeople.adults;
             if (max >= 0) {
                 adults = adults <= max ? adults : max;
                 max -= adults;
             }
-            var boys = _.isNil(basePeople.boys) ? 0 : _.isNil(maxPeople.boys) ? basePeople.boys : basePeople.boys <= maxPeople.boys ? basePeople.boys : maxPeople.boys;
+            var boys = _.isNil(currentPeople.boys) ? 0 : _.isNil(maxPeople.boys) ? currentPeople.boys : currentPeople.boys <= maxPeople.boys ? currentPeople.boys : maxPeople.boys;
             if (max >= 0) {
                 boys = boys <= max ? boys : max;
                 max -= boys;
             }
-            var children = _.isNil(basePeople.children) ? 0 : _.isNil(maxPeople.children) ? basePeople.children : basePeople.children <= maxPeople.children ? basePeople.children : maxPeople.children;
+            var children = _.isNil(currentPeople.children) ? 0 : _.isNil(maxPeople.children) ? currentPeople.children : currentPeople.children <= maxPeople.children ? currentPeople.children : maxPeople.children;
             if (max >= 0) {
                 children = children <= max ? children : max;
                 max -= children;
             }
-            var kids = _.isNil(basePeople.kids) ? 0 : _.isNil(maxPeople.kids) ? basePeople.kids : basePeople.kids <= maxPeople.kids ? basePeople.kids : maxPeople.kids;
+            var kids = _.isNil(currentPeople.kids) ? 0 : _.isNil(maxPeople.kids) ? currentPeople.kids : currentPeople.kids <= maxPeople.kids ? currentPeople.kids : maxPeople.kids;
             if (max >= 0) {
                 kids = kids <= max ? kids : max;
                 max -= kids;
@@ -1712,39 +1765,42 @@
                 kids: kids
             };
         };
-        $$service.peopleAvailability = function(basePeople, currentPeople, maxCount) {
-            basePeople = $$service.normalizePeople(basePeople);
+        $$service.peopleAvailability = function(maxPeople, currentPeople, maxCount) {
+            maxPeople = $$service.normalizePeople(maxPeople);
+            if ($$service.guestsCount(maxPeople).standard <= 0) {
+                maxPeople = angular.copy(currentPeople);
+            }
             currentPeople = $$service.normalizePeople(currentPeople);
             var currentCount = $$service.guestsCount(currentPeople).standard;
-            var currentAv = parseInt(maxCount || 0) - currentCount;
+            var currentAv = maxCount ? parseInt(maxCount) - currentCount : currentCount;
             var peopleAvailability = {
                 adults: 0,
                 boys: 0,
                 children: 0,
                 kids: 0
             };
-            for (var i = 1; i <= parseInt(basePeople.adults || 0); i++) {
+            for (var i = 1; i <= parseInt(maxPeople.adults || 0); i++) {
                 currentPeople.adults = currentPeople.adults || 0;
                 var disabled = i <= currentPeople.adults ? false : currentAv + currentPeople.adults - i < 0;
                 if (!disabled) {
                     peopleAvailability.adults = i;
                 }
             }
-            for (var i = 1; i <= parseInt(basePeople.boys || 0); i++) {
+            for (var i = 1; i <= parseInt(maxPeople.boys || 0); i++) {
                 currentPeople.boys = currentPeople.boys || 0;
                 var disabled = i <= currentPeople.boys ? false : currentAv + currentPeople.boys - i < 0;
                 if (!disabled) {
                     peopleAvailability.boys = i;
                 }
             }
-            for (var i = 1; i <= parseInt(basePeople.children || 0); i++) {
+            for (var i = 1; i <= parseInt(maxPeople.children || 0); i++) {
                 currentPeople.children = currentPeople.children || 0;
                 var disabled = i <= currentPeople.children ? false : currentAv + currentPeople.children - i < 0;
                 if (!disabled) {
                     peopleAvailability.children = i;
                 }
             }
-            for (var i = 1; i <= parseInt(basePeople.kids || 0); i++) {
+            for (var i = 1; i <= parseInt(maxPeople.kids || 0); i++) {
                 currentPeople.kids = currentPeople.kids || 0;
                 var disabled = i <= currentPeople.kids ? false : currentAv + currentPeople.kids - i < 0;
                 if (!disabled) {
@@ -1824,7 +1880,7 @@
             if (!rateSold || !roomType || !vatRate) {
                 return {};
             }
-            var nights = DateUtils.absoluteMoment(rateSold.startDate).diff(DateUtils.absoluteMoment(rateSold.endDate), "days");
+            var nights = DateUtils.diff(rateSold.endDate, rateSold.startDate);
             var guestsCount = $$service.guestsCount(peopleObj, extraPeopleObj);
             if (!guestsCount.standard) {
                 peopleObj = {
@@ -1972,7 +2028,7 @@
         $$service.updateServiceSoldPrice = function(serviceSold, peopleObj, nights, count, force) {
             var serviceDays = nights;
             if (serviceSold.startDate && serviceSold.endDate) {
-                serviceDays = DateUtils.absoluteMoment(serviceSold.endDate).diff(DateUtils.absoluteMoment(serviceSold.startDate), "days");
+                serviceDays = DateUtils.diff(serviceSold.startDate, serviceSold.endDate);
             }
             var oldService = force ? angular.copy(serviceSold) : null;
             _.assign(serviceSold, $$service.serviceSold(serviceSold.service, peopleObj || serviceSold.people, serviceDays, count || serviceSold.count));
@@ -2019,7 +2075,7 @@
         $$service.updateBedSoldPrice = function(bedSold, peopleObj, nights, vatRate, force) {
             var bedNights = nights;
             if (bedSold.startDate && bedSold.endDate) {
-                bedNights = DateUtils.absoluteMoment(bedSold.endDate).diff(DateUtils.absoluteMoment(bedSold.startDate), "days");
+                bedNights = DateUtils.diff(bedSold.startDate, bedSold.endDate);
             }
             var oldBed = force ? angular.copy(bedSold) : null;
             _.assign(bedSold, $$service.bedSold(bedSold.bed, peopleObj || bedSold.people, bedNights, vatRate || bedSold.amount.vatRate));
@@ -2054,7 +2110,7 @@
                 return;
             }
             var _self = this;
-            var nights = DateUtils.absoluteMoment(res.checkout).diff(DateUtils.absoluteMoment(res.checkin), "days");
+            var nights = DateUtils.diff(res.checkin, res.checkout);
             var initialPrice = 0;
             var finalPrice = 0;
             var initialCancelPrice = 0;
@@ -2424,7 +2480,7 @@
             var status;
             _.forEach(cancelledReservation.rooms, function(room) {
                 if (room.status == "CONFIRMED") {
-                    if (room.endDate && DateUtils.absoluteMoment(room.endDate).isBefore(nowMoment, "days")) {
+                    if (room.endDate && moment(room.endDate).isBefore(nowMoment, "days")) {
                         return;
                     }
                     room.cancelled = false;
@@ -2447,11 +2503,11 @@
             return cancelledReservation;
         };
         $$service.createCancelledRoom = function(room, reservation, targetDate, defaultVat) {
-            var targetMoment = targetDate ? DateUtils.absoluteMoment(targetDate) : DateUtils.absoluteMoment();
-            if (room.endDate && DateUtils.absoluteMoment(room.endDate).isBefore(targetMoment, "days")) {
+            var targetMoment = targetDate ? moment(targetDate) : moment();
+            if (room.endDate && moment(room.endDate).isBefore(targetMoment, "days")) {
                 return room;
             }
-            var nights = targetMoment.diff(DateUtils.absoluteMoment(room.startDate || reservation.checkin), "days");
+            var nights = DateUtils.diff(room.startDate || reservation.checkin, targetMoment);
             var cancelledRoom = angular.copy(room);
             cancelledRoom.cancelled = false;
             cancelledRoom.cancelAmount = cancelledRoom.cancelAmount ? cancelledRoom.cancelAmount : {};
@@ -2531,18 +2587,18 @@
             defaultVat = defaultVat || (res.hotel.vatTax ? res.hotel.vatTax.finalAmount : 0);
             var earlyCheckoutReservation = angular.copy(res);
             var now = new Date();
-            var todayMoment = DateUtils.absoluteMoment(now);
+            var todayMoment = moment(now);
             earlyCheckoutReservation.initialAmount = angular.copy(earlyCheckoutReservation.totalAmount);
             _.assign(earlyCheckoutReservation.totalAmount, {
                 initialAmount: 0,
                 finalAmount: 0
             });
             var status, title, reason, penalty, freeLabel, penaltyLabel;
-            var nights = todayMoment.diff(DateUtils.absoluteMoment(earlyCheckoutReservation.checkin), "days");
+            var nights = DateUtils.diff(earlyCheckoutReservation.checkin, todayMoment);
             if (nights > 0) {
                 _.forEach(earlyCheckoutReservation.rooms, function(room) {
                     if (room.status == "CONFIRMED") {
-                        if (room.endDate && DateUtils.absoluteMoment(room.endDate).isBefore(todayMoment, "days")) {
+                        if (room.endDate && moment(room.endDate).isBefore(todayMoment, "days")) {
                             room.status = "EARLY_CHECKOUT";
                             return;
                         }
@@ -2596,13 +2652,13 @@
             if (!room || room.status != "CONFIRMED") {
                 return null;
             }
-            var targetMoment = targetDate ? DateUtils.absoluteMoment(targetDate) : DateUtils.absoluteMoment();
-            var end = room.endDate ? DateUtils.absoluteMoment(room.endDate) : null;
+            var targetMoment = targetDate ? moment(targetDate) : moment();
+            var end = room.endDate ? moment(room.endDate) : null;
             if (end && end.isSame(targetMoment, "days")) {
                 return angular.copy(room);
             }
-            var start = DateUtils.absoluteMoment(room.startDate || reservation.checkin);
-            end = end || DateUtils.absoluteMoment(reservation.checkout);
+            var start = moment(room.startDate || reservation.checkin);
+            end = end || moment(reservation.checkout);
             var originalRange = moment.range(start, end);
             if (!originalRange.contains(targetMoment, {
                 exclusive: true
@@ -2644,10 +2700,10 @@
             });
             terminatedRoom.amount = terminatedRoom.totalRoomAmount;
             terminatedRoom.status = statusToApply ? statusToApply : room.status;
-            terminatedRoom.endDate = DateUtils.absoluteDate(terminationRange.end);
+            terminatedRoom.endDate = moment(terminationRange.end).toDate();
             terminatedRoom.initialAmount = angular.copy(room.totalRate.amount);
             terminatedRoom.tempStatus = "earlyCheckout";
-            var ratesRange = terminatedRoom.status == "EARLY_CHECKOUT" && terminationRange.end.isSame(DateUtils.absoluteMoment(), "day") ? moment.range(terminationRange.start, moment(terminationRange.end).add(1, "days")) : terminationRange;
+            var ratesRange = terminatedRoom.status == "EARLY_CHECKOUT" && terminationRange.end.isSame(moment(), "day") ? moment.range(terminationRange.start, moment(terminationRange.end).add(1, "days")) : terminationRange;
             terminatedRoom.totalRate.initialDailyRates = angular.copy(terminatedRoom.totalRate.dailyRates);
             if (terminatedRoom.totalRate.type == "STANDARD") {
                 _.forEach(terminatedRoom.totalRate.initialDailyRates, function(rate) {
@@ -2675,7 +2731,7 @@
                 var policyRange = !chargeNights ? null : chargeNights > 0 && chargeNights < originalRange.diff("days") ? moment.range(originalRange.start, moment(originalRange.start).add(chargeNights, "days")) : originalRange;
                 var chargeRange = policyRange && policyRange.diff("days") > ratesRange.diff("days") ? policyRange : ratesRange;
                 _.forEach(terminatedRoom.totalRate.initialDailyRates, function(rate) {
-                    var rateDate = DateUtils.absoluteMoment(rate.date);
+                    var rateDate = moment(rate.date);
                     if (chargeRange.contains(rateDate, {
                         exclusive: true
                     })) {
@@ -2727,7 +2783,7 @@
             if (!serviceSold || serviceSold.status != "CONFIRMED") {
                 return false;
             }
-            var serviceRange = moment.range(DateUtils.absoluteMoment(serviceSold.startDate || terminationRange.start), DateUtils.absoluteMoment(serviceSold.endDate || terminationRange.end));
+            var serviceRange = moment.range(moment(serviceSold.startDate || terminationRange.start), moment(serviceSold.endDate || terminationRange.end));
             if (!serviceRange.contains(terminationRange.end)) {
                 return false;
             }
@@ -2741,9 +2797,9 @@
                 if (roomRange && roomRange.start && roomRange.end) {
                     serviceSold.dailyRates = [];
                     var dailyAmount = $$service.serviceSold(serviceSold.service, serviceSold.people, 1, serviceSold.count).amount;
-                    var serviceStartDate = DateUtils.absoluteMoment(serviceSold.startDate || roomRange.start);
-                    var serviceEndDate = DateUtils.absoluteMoment(serviceSold.endDate || roomRange.end);
-                    for (var date = DateUtils.absoluteMoment(roomRange.start); date.isBefore(DateUtils.absoluteMoment(roomRange.end), "days"); date.add(1, "days")) {
+                    var serviceStartDate = moment(serviceSold.startDate || roomRange.start);
+                    var serviceEndDate = moment(serviceSold.endDate || roomRange.end);
+                    for (var date = moment(roomRange.start); date.isBefore(moment(roomRange.end), "days"); date.add(1, "days")) {
                         serviceSold.dailyRates.push({
                             date: date.toDate(),
                             amount: date.isBefore(serviceStartDate, "days") || date.isAfter(serviceEndDate, "days") ? null : dailyAmount,
@@ -2751,7 +2807,7 @@
                         });
                     }
                 }
-                serviceSold.endDate = DateUtils.absoluteDate(terminationRange.end);
+                serviceSold.endDate = moment(terminationRange.end).toDate();
             }
             return true;
         };
@@ -2773,9 +2829,9 @@
                 if (roomRange && roomRange.start && roomRange.end) {
                     bedSold.dailyRates = [];
                     var dailyAmount = $$service.bedSold(bedSold.bed, bedSold.people, 1, defaultVat).amount;
-                    var bedStartDate = DateUtils.absoluteMoment(bedSold.startDate || roomRange.start);
-                    var bedEndDate = DateUtils.absoluteMoment(bedSold.endDate || roomRange.end);
-                    for (var date = DateUtils.absoluteMoment(roomRange.start); date.isBefore(DateUtils.absoluteMoment(roomRange.end), "days"); date.add(1, "days")) {
+                    var bedStartDate = moment(bedSold.startDate || roomRange.start);
+                    var bedEndDate = moment(bedSold.endDate || roomRange.end);
+                    for (var date = moment(roomRange.start); date.isBefore(moment(roomRange.end), "days"); date.add(1, "days")) {
                         bedSold.dailyRates.push({
                             date: date.toDate(),
                             amount: date.isBefore(bedStartDate, "days") || date.isAfter(bedEndDate, "days") ? null : dailyAmount,
@@ -2783,7 +2839,7 @@
                         });
                     }
                 }
-                bedSold.endDate = DateUtils.absoluteDate(terminationRange.end);
+                bedSold.endDate = moment(terminationRange.end).toDate();
             }
             return true;
         };

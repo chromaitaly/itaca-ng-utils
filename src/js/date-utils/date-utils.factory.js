@@ -22,7 +22,6 @@
 				throw new Error("The date is not valid!");
 			}
 			
-//			var absMoment = moment({y: m.year(), M: m.month(), d: m.date(), h: m.hour(), m: m.minute(), s: m.second(), ms: m.millisecond()}).utc();
 			var absMoment = moment(m).utcOffset(0, true);
 			return resetTime ? absMoment.startOf("day") : absMoment;
 		};
@@ -60,12 +59,8 @@
 		        	var data = match[0];
 		        	
 		        	try {
-		        		var milliseconds = Date.parse(data);
-		                if (!isNaN(milliseconds)) {
-		                    input[key] = new Date(milliseconds);
-		                }
+		        		input[key] = moment(data, moment.HTML5_FMT.DATETIME_LOCAL_MS).toDate();
 		        		data = undefined;
-		        		milliseconds = undefined;
 		        		
 		        	} catch(e) {
 		        		$log.warn("Error converting date '" + data + "': " + e);
