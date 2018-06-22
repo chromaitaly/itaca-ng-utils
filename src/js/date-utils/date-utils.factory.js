@@ -74,7 +74,7 @@
 		    }
 		};
 		
-		service.convertDatesToUTC = function(input, maxDeepLevel, currentLevel) {
+		service.convertDatesToUTCStrings = function(input, maxDeepLevel, currentLevel) {
 		    // Ignore things that aren't objects.
 		    if (typeof input !== "object"){ return input;}
 		    
@@ -88,7 +88,7 @@
 		        
 		        if (angular.isDate(value) || moment.isMoment(value)) {
 		        	try {
-		        		input[key] = service.absoluteDate(value);
+		        		input[key] = moment(value).utc(true).format()
 		        		
 		        	} catch(e) {
 		        		$log.warn("Error converting date to utc'" + data + "': " + e);
@@ -97,7 +97,7 @@
 		        } else if (typeof value === "object") {
 		            // Recurse into object
 		        	if (currentLevel < maxDeepLevel) {
-		        		service.convertDatesToUTC(value, maxDeepLevel, currentLevel+1);
+		        		service.convertDatesToUTCStrings(value, maxDeepLevel, currentLevel+1);
 		        	}
 		        }
 		    }
