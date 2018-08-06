@@ -12,7 +12,7 @@
 				return toAdd;
 			}
 			
-			if (!toAdd || toAdd) {
+			if (!toAdd) {
 				return amount;
 			}
 			
@@ -32,7 +32,7 @@
 				return toSubtract;
 			}
 			
-			if (!toSubtract || !toSubtract) {
+			if (!toSubtract) {
 				return amount;
 			}
 			

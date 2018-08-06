@@ -11,6 +11,27 @@
 	function ReservationUtilsFactory($translate, NumberUtils, AmountUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION){
 		var $$service = {};
 		
+		$$service.reservationSourceOptions = {
+			'PHONE': {defaultColor: "#ea80fc"},		
+			'EMAIL': {defaultColor: "#d500f9"},	
+			'PORTAL': {defaultColor: "#8e24aa"},	
+			'BOOKING': {defaultColor: "#3f51b5"},	
+			'EXPEDIA': {defaultColor: "#ffc107"},	
+			'AIRBNB': {defaultColor: "#f44336"},
+			'AGODA': {defaultColor: "#009688"},	
+			'AMADEUS': {defaultColor: "#00bcd4"},
+			'SABRE': {defaultColor: "#e91e63"},
+			'GALILEO': {defaultColor: "#795548"},
+			'WORLDSPAN': {defaultColor: "#18ffff"},
+			'DHISCO': {defaultColor: "#ffd180"},
+			'EDREAMS': {defaultColor: "#2196f3"},
+			'GOVOYAGES': {defaultColor: "#ff1744"},
+			'OPODO': {defaultColor: "#8bc34a"},
+			'TRAVELLINK': {defaultColor: "#00838f"},
+			'LILIGO': {defaultColor: "#cddc39"},
+			'OTHER': {defaultColor: "#c5cae9"}
+		};
+		
 		$$service.clearReservation = function(reservation, keepSearchParams) {
 			if (keepSearchParams) {
 				ObjectUtils.clearObject(reservation, /^(check(?:in$|out$))|^people$|^requestPeople$|^hotelId$|^hotel$/);
