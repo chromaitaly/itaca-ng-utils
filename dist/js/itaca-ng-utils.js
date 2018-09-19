@@ -46,7 +46,7 @@
             if (!amount) {
                 return toAdd;
             }
-            if (!toAdd || toAdd) {
+            if (!toAdd) {
                 return amount;
             }
             var total = angular.copy(amount);
@@ -60,7 +60,7 @@
             if (!amount) {
                 return toSubtract;
             }
-            if (!toSubtract || !toSubtract) {
+            if (!toSubtract) {
                 return amount;
             }
             var total = angular.copy(amount);
@@ -234,7 +234,7 @@
             return response;
         };
         service.request = function(config) {
-            DateUtils.convertDatesToUTC(config.data);
+            DateUtils.convertDatesToUTCStrings(config.data);
             return config;
         };
         return service;
@@ -296,7 +296,7 @@
                 }
             }
         };
-        service.convertDatesToUTC = function(input, maxDeepLevel, currentLevel) {
+        service.convertDatesToUTCStrings = function(input, maxDeepLevel, currentLevel) {
             if (typeof input !== "object") {
                 return input;
             }
@@ -309,13 +309,13 @@
                 var value = input[key];
                 if (angular.isDate(value) || moment.isMoment(value)) {
                     try {
-                        input[key] = service.absoluteDate(value);
+                        input[key] = moment(value).utc(true).format();
                     } catch (e) {
                         $log.warn("Error converting date to utc'" + data + "': " + e);
                     }
                 } else if (typeof value === "object") {
                     if (currentLevel < maxDeepLevel) {
-                        service.convertDatesToUTC(value, maxDeepLevel, currentLevel + 1);
+                        service.convertDatesToUTCStrings(value, maxDeepLevel, currentLevel + 1);
                     }
                 }
             }
@@ -1124,71 +1124,71 @@
     "use strict";
     angular.module("itaca.utils").factory("NumberUtils", NumberUtilsFactory);
     function NumberUtilsFactory() {
-        var service = {};
-        service.fixedDecimals = function(number, count) {
+        var $$service = {};
+        $$service.fixedDecimals = function(number, count) {
             if (!number || number === 0) {
                 return 0;
             }
             var n = Number(number).toFixed(count || 2);
             return Number(n).valueOf();
         };
-        service.vatAmount = function(price, vatRate) {
+        $$service.vatAmount = function(price, vatRate) {
             return this.fixedDecimals(price - this.taxableAmount(price, vatRate));
         };
-        service.taxableAmount = function(price, vatRate) {
+        $$service.taxableAmount = function(price, vatRate) {
             return this.fixedDecimals(vatRate ? price / ((100 + vatRate) / 100) : price);
         };
-        service.calculateDiscount = function(price, discount, discountType) {
+        $$service.calculateDiscount = function(price, discount, discountType) {
             if (!price || !discount) {
                 return 0;
             }
             price = parseFloat(price);
             discount = parseFloat(discount);
             discountType = discountType || "PRICE";
-            return service.fixedDecimals(discountType == "PERCENTAGE" ? price / 100 * discount : 100 * discount / price);
+            return $$service.fixedDecimals(discountType == "PERCENTAGE" ? price / 100 * discount : 100 * discount / price);
         };
-        service.applyDiscount = function(price, discount, discountType) {
+        $$service.applyDiscount = function(price, discount, discountType) {
             discountType = discountType || "PRICE";
-            var discountAmount = discountType == "PRICE" ? parseFloat(discount) : service.calculateDiscount(price, discount, discountType);
-            return service.fixedDecimals(price - discountAmount);
+            var discountAmount = discountType == "PRICE" ? parseFloat(discount) : $$service.calculateDiscount(price, discount, discountType);
+            return $$service.fixedDecimals(price - discountAmount);
         };
-        service.uniqueNumber = function() {
+        $$service.uniqueNumber = function() {
             var date = Date.now();
-            if (date <= service.uniqueNumber.previous) {
-                date = ++service.uniqueNumber.previous;
+            if (date <= $$service.uniqueNumber.previous) {
+                date = ++$$service.uniqueNumber.previous;
             } else {
-                service.uniqueNumber.previous = date;
+                $$service.uniqueNumber.previous = date;
             }
             return date;
         };
-        service.uniqueNumber.previous = 0;
-        service.isEven = function(n) {
+        $$service.uniqueNumber.previous = 0;
+        $$service.isEven = function(n) {
             return n % 2 == 0;
         };
-        service.isOdd = function(n) {
+        $$service.isOdd = function(n) {
             return Math.abs(n % 2) == 1;
         };
-        service.defaultNumber = function(num, defaultNum) {
+        $$service.defaultNumber = function(num, defaultNum) {
             var ret = Number(num);
-            return isNaN(ret) ? service.defaultNumber(defaultNum, 0) : ret;
+            return isNaN(ret) ? $$service.defaultNumber(defaultNum, 0) : ret;
         };
-        service.lcmArray = function(numArray) {
+        $$service.lcmArray = function(numArray) {
             if (!_.isArray(numArray) || _.isEmpty(numArray)) {
                 return false;
             }
             var lcm = numArray[0];
             for (var i = 1; i < numArray.length; i++) {
-                lcm = service.lcm(lcm, numArray[i]);
+                lcm = $$service.lcm(lcm, numArray[i]);
             }
             return lcm;
         };
-        service.lcm = function(x, y) {
+        $$service.lcm = function(x, y) {
             if (typeof x !== "number" || typeof y !== "number") {
                 return false;
             }
-            return !x || !y ? 0 : Math.abs(x * y / service.gcd(x, y));
+            return !x || !y ? 0 : Math.abs(x * y / $$service.gcd(x, y));
         };
-        service.gcd = function gcd(x, y) {
+        $$service.gcd = function gcd(x, y) {
             x = Math.abs(x);
             y = Math.abs(y);
             while (y) {
@@ -1198,7 +1198,39 @@
             }
             return x;
         };
-        return service;
+        $$service.formatter = function(num, digits) {
+            var si = [ {
+                value: 1,
+                symbol: ""
+            }, {
+                value: 1e3,
+                symbol: "k"
+            }, {
+                value: 1e6,
+                symbol: "M"
+            }, {
+                value: 1e9,
+                symbol: "G"
+            }, {
+                value: 1e12,
+                symbol: "T"
+            }, {
+                value: 1e15,
+                symbol: "P"
+            }, {
+                value: 1e18,
+                symbol: "E"
+            } ];
+            var rx = /\.0+$|(\.[0-9]*[1-9])0+$/;
+            var i;
+            for (i = si.length - 1; i > 0; i--) {
+                if (num >= si[i].value) {
+                    break;
+                }
+            }
+            return (num / si[i].value).toFixed(digits).replace(rx, "$1") + si[i].symbol;
+        };
+        return $$service;
     }
 })();
 
@@ -1413,6 +1445,62 @@
     angular.module("itaca.utils").factory("ReservationUtils", ReservationUtilsFactory);
     function ReservationUtilsFactory($translate, NumberUtils, AmountUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION) {
         var $$service = {};
+        $$service.reservationSourceOptions = {
+            PHONE: {
+                defaultColor: "#ea80fc"
+            },
+            EMAIL: {
+                defaultColor: "#d500f9"
+            },
+            PORTAL: {
+                defaultColor: "#8e24aa"
+            },
+            BOOKING: {
+                defaultColor: "#3f51b5"
+            },
+            EXPEDIA: {
+                defaultColor: "#ffc107"
+            },
+            AIRBNB: {
+                defaultColor: "#f44336"
+            },
+            AGODA: {
+                defaultColor: "#009688"
+            },
+            AMADEUS: {
+                defaultColor: "#00bcd4"
+            },
+            SABRE: {
+                defaultColor: "#e91e63"
+            },
+            GALILEO: {
+                defaultColor: "#795548"
+            },
+            WORLDSPAN: {
+                defaultColor: "#18ffff"
+            },
+            DHISCO: {
+                defaultColor: "#ffd180"
+            },
+            EDREAMS: {
+                defaultColor: "#2196f3"
+            },
+            GOVOYAGES: {
+                defaultColor: "#ff1744"
+            },
+            OPODO: {
+                defaultColor: "#8bc34a"
+            },
+            TRAVELLINK: {
+                defaultColor: "#00838f"
+            },
+            LILIGO: {
+                defaultColor: "#cddc39"
+            },
+            OTHER: {
+                defaultColor: "#c5cae9"
+            }
+        };
         $$service.clearReservation = function(reservation, keepSearchParams) {
             if (keepSearchParams) {
                 ObjectUtils.clearObject(reservation, /^(check(?:in$|out$))|^people$|^requestPeople$|^hotelId$|^hotel$/);
