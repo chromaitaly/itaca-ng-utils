@@ -29,11 +29,23 @@
 		this.$$redirectUrl = redirectUrl || "/login";
 		
 		this.responseError = function (rejection) {
-	    	if (rejection.data && rejection.data.status === 401) {
-	    		location.assign($$service.$$redirectUrl);
-	    	}
-	    		
+			
+			var status = rejection.data && rejection.data.status ? rejection.data.status : rejection.status ? rejection.status : null;
+			
+			if(status){
+				switch(status){
+					case 401: ctrl.$$dialogNotAutorized(); break;
+					case 403: location.assign($$service.$$redirectUrl); break;
+				}
+			}
+			
     		return $q.reject(rejection);
 		};
+		
+		this.$$dialogNotAutorized = function(){
+			$translate(['error.401', 'error.code.401']).then(function(translate){
+				Dialog.showAlert(null, translate['error.401'],  translate['error.code.401']);
+			});
+		}
 	}
 })();
