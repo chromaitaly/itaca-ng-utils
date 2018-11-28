@@ -222,7 +222,7 @@
 		    
 		    this.reset = function() {
 		    	_self.busy = false;
-		    	_self.executed = true;
+		    	_self.executed = false;
 		    	_self.lastPage = false;
 		    	_self.page = 0;
 		    	_self.totalPages = 0;
