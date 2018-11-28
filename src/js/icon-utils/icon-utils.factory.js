@@ -169,6 +169,18 @@
 			};
 		};
 		
+		service.reservationStatusIcons = function(){
+			return {
+				'CONFIRMED'				: 'mdi mdi-check md-18 text-success',
+				'TBC'					: 'mdi mdi-av-timer md-18 text-info',
+				'CANCELLED'				: 'mdi mdi-delete md-18 text-danger',
+				'NO_SHOW'				: 'mdi mdi-eye-off md-18 text-black',
+				'CREDITCARD_NOT_VALID'	: 'mdi mdi-credit-card-scan md-18 text-warn',
+				'CREDITCARD_PENDING'	: 'mdi mdi-credit-card-scan md-18 text-warn',
+				'EARLY_CHECKOUT'		: 'mdi mdi-logout-variant md-18 text-blue-sea',
+			};
+		};
+		
 		return service;
 	}
 })();
