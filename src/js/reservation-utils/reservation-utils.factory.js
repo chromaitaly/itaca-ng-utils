@@ -565,7 +565,7 @@
 			return peopleAvailability;
 		};
 		
-		$$service.bedsAvailability = function(maxBeds, currentBeds, maxCount) {
+		$$service.bedsAvailability = function(maxBeds, currentBeds, maxCount, checkZero) {
 			var bedsAvailability = [];
 			
 			// inserisco i letti già aggiunti
@@ -591,7 +591,7 @@
 					n = _.size(added);
 
 					// se sono stati già inseriti tutti i letti di questo tipo vado al prossimo
-					if (n >= bed.count) {
+					if ((checkZero && n <= 0) || n >= bed.count) {
 						return;
 					}
 					
@@ -624,9 +624,9 @@
 			
 			_.forEach(roomType.beds, function(bed){
 				// se sono stati inseriti tutte le persone o tutti i letti, interrompo
-				if (guestsCount.standard <= 0 || roomType.bedCount <= count) {
-					return false;
-				}
+//				if (guestsCount.standard <= 0 || roomType.bedCount <= count) {
+//					return false;
+//				}
 				
 				var n = 0;
 
