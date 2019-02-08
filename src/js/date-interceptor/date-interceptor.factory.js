@@ -18,7 +18,7 @@
 	    };
 	    
 	    service.request = function(config) {
-	    	DateUtils.convertDatesToUTCStrings(config.data);
+	    	DateUtils.convertDatesToUTCStrings(config);
 	    	
 	        return config;
 	    };
