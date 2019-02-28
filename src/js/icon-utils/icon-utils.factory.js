@@ -61,23 +61,23 @@
 			return {
 				'PAYPAL': 'pf pf-paypal',
 				'VISA': 'pf pf-visa',
-				'MASTERCARD': 'pf pf-mastercard',
+				'MASTERCARD': 'pf pf-mastercard-alt',
 				'AMEX': 'pf pf-american-express',
-				'BIT_COIN': 'pf pf-bitcoin',
-				'CARTA_SI': 'pf pf-carta-si',
+				'BIT_COIN': 'pf pf-bitcoin', //deprecato
+				'CARTA_SI': 'pf pf-carta-si', //deprecato
 				'DINERS_CLUB': 'pf pf-diners',
 				'DISCOVER': 'pf pf-discover',
 				'JCB': 'pf pf-jcb',
 				'UNION_PAY': 'pf pf-unionpay',
 				'VISA_ELECTRON': 'pf pf-visa-electron',
-				'V_PAY': 'pf pf-visa',
-				'MAESTRO': 'pf pf-maestro',
-				'CIRRUS': 'pf pf-cirrus',
-				'POSTEPAY': 'pf pf-postepay',
-				'APPLE_PAY': 'pf pf-apple-pay',
-				'PAGSEGURO': 'pf pf-pagseguro',
-				'BANCONTACT': 'pf pf-bancontact-mister-cash',
-				'BANCOMAT': 'pf pf-card'
+				'V_PAY': 'pf pf-visa-pay',
+				'MAESTRO': 'pf pf-maestro-alt',
+				'CIRRUS': 'pf pf-cirrus-alt',
+				'POSTEPAY': 'pf pf-postepay', //deprecato
+				'APPLE_PAY': 'pf pf-apple-pay', //deprecato
+				'PAGSEGURO': 'pf pf-pagseguro', //deprecato
+				'BANCONTACT': 'pf pf-bancontact-mister-cash', //deprecato
+				'BANCOMAT': 'pf pf-card' //deprecato
 			};
 		};
 		
