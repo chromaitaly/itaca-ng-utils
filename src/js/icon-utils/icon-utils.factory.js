@@ -59,25 +59,15 @@
 		
 		service.paymentIcons = function () {
 			return {
-				'PAYPAL': 'pf pf-paypal',
-				'VISA': 'pf pf-visa',
-				'MASTERCARD': 'pf pf-mastercard-alt',
-				'AMEX': 'pf pf-american-express',
-				'BIT_COIN': 'pf pf-bitcoin', //deprecato
-				'CARTA_SI': 'pf pf-carta-si', //deprecato
-				'DINERS_CLUB': 'pf pf-diners',
-				'DISCOVER': 'pf pf-discover',
-				'JCB': 'pf pf-jcb',
-				'UNION_PAY': 'pf pf-unionpay',
-				'VISA_ELECTRON': 'pf pf-visa-electron',
-				'V_PAY': 'pf pf-visa-pay',
-				'MAESTRO': 'pf pf-maestro-alt',
-				'CIRRUS': 'pf pf-cirrus-alt',
-				'POSTEPAY': 'pf pf-postepay', //deprecato
-				'APPLE_PAY': 'pf pf-apple-pay', //deprecato
-				'PAGSEGURO': 'pf pf-pagseguro', //deprecato
-				'BANCONTACT': 'pf pf-bancontact-mister-cash', //deprecato
-				'BANCOMAT': 'pf pf-card' //deprecato
+				'PAYPAL' 	  : 'ch-pay-icon ch-pay-icon-paypal',
+				'VISA' 		  : 'ch-pay-icon ch-pay-icon-visa',
+				'MASTERCARD'  : 'ch-pay-icon ch-pay-icon-mastercard',
+				'AMEX' 		  : 'ch-pay-icon ch-pay-icon-amex',
+				'DINERS_CLUB' : 'ch-pay-icon ch-pay-icon-diners',
+				'DISCOVER' 	  : 'ch-pay-icon ch-pay-icon-discover',
+				'JCB' 		  : 'ch-pay-icon ch-pay-icon-jcb',
+				'UNION_PAY'	  : 'ch-pay-icon ch-pay-icon-unionpay',
+				'MAESTRO'	  : 'ch-pay-icon ch-pay-icon-maestro',
 			};
 		};
 		
