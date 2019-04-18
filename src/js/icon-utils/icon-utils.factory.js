@@ -168,6 +168,7 @@
 				'CREDITCARD_NOT_VALID'	: 'mdi mdi-credit-card-scan md-18 text-warn',
 				'CREDITCARD_PENDING'	: 'mdi mdi-credit-card-scan md-18 text-warn',
 				'EARLY_CHECKOUT'		: 'mdi mdi-logout-variant md-18 text-blue-sea',
+				'PAYMENT_PENDING'		: 'mdi mdi-lock-clock md-18 text-warn',
 			};
 		};
 		
