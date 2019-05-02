@@ -59,25 +59,15 @@
 		
 		service.paymentIcons = function () {
 			return {
-				'PAYPAL': 'pf pf-paypal',
-				'VISA': 'pf pf-visa',
-				'MASTERCARD': 'pf pf-mastercard',
-				'AMEX': 'pf pf-american-express',
-				'BIT_COIN': 'pf pf-bitcoin',
-				'CARTA_SI': 'pf pf-carta-si',
-				'DINERS_CLUB': 'pf pf-diners',
-				'DISCOVER': 'pf pf-discover',
-				'JCB': 'pf pf-jcb',
-				'UNION_PAY': 'pf pf-unionpay',
-				'VISA_ELECTRON': 'pf pf-visa-electron',
-				'V_PAY': 'pf pf-visa',
-				'MAESTRO': 'pf pf-maestro',
-				'CIRRUS': 'pf pf-cirrus',
-				'POSTEPAY': 'pf pf-postepay',
-				'APPLE_PAY': 'pf pf-apple-pay',
-				'PAGSEGURO': 'pf pf-pagseguro',
-				'BANCONTACT': 'pf pf-bancontact-mister-cash',
-				'BANCOMAT': 'pf pf-card'
+				'PAYPAL' 	  : 'ch-pay-icon ch-pay-icon-paypal',
+				'VISA' 		  : 'ch-pay-icon ch-pay-icon-visa',
+				'MASTERCARD'  : 'ch-pay-icon ch-pay-icon-mastercard',
+				'AMEX' 		  : 'ch-pay-icon ch-pay-icon-amex',
+				'DINERS_CLUB' : 'ch-pay-icon ch-pay-icon-diners',
+				'DISCOVER' 	  : 'ch-pay-icon ch-pay-icon-discover',
+				'JCB' 		  : 'ch-pay-icon ch-pay-icon-jcb',
+				'UNION_PAY'	  : 'ch-pay-icon ch-pay-icon-unionpay',
+				'MAESTRO'	  : 'ch-pay-icon ch-pay-icon-maestro',
 			};
 		};
 		
@@ -178,6 +168,7 @@
 				'CREDITCARD_NOT_VALID'	: 'mdi mdi-credit-card-scan md-18 text-warn',
 				'CREDITCARD_PENDING'	: 'mdi mdi-credit-card-scan md-18 text-warn',
 				'EARLY_CHECKOUT'		: 'mdi mdi-logout-variant md-18 text-blue-sea',
+				'PAYMENT_PENDING'		: 'mdi mdi-lock-clock md-18 text-warn',
 			};
 		};
 		
