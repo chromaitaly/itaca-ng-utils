@@ -156,21 +156,24 @@
 (function() {
     "use strict";
     BeforeUnloadFactory.$inject = [ "$rootScope", "$window" ];
-    angular.module("itaca.utils").factory("_beforeUnload", BeforeUnloadFactory);
+    angular.module("itaca.utils").factory("BeforeUnload", BeforeUnloadFactory);
     function BeforeUnloadFactory($rootScope, $window) {
-        var unloadEvent = function(e) {
-            var confirmation = {};
-            var event = $rootScope.$broadcast("onBeforeUnload", confirmation);
-            if (event.defaultPrevented) {
-                return confirmation.message;
-            }
+        var $$service = {};
+        $$service.init = function() {
+            var unloadEvent = function(e) {
+                var confirmation = {};
+                var event = $rootScope.$broadcast("onBeforeUnload", confirmation);
+                if (event.defaultPrevented) {
+                    e.returnValue = confirmation.message;
+                    return confirmation.message;
+                }
+            };
+            $window.onbeforeunload = unloadEvent;
+            $window.onunload = function() {
+                $rootScope.$broadcast("onUnload");
+            };
         };
-        $window.addEventListener("beforeunload", unloadEvent);
-        $window.onbeforeunload = unloadEvent;
-        $window.onunload = function() {
-            $rootScope.$broadcast("onUnload");
-        };
-        return {};
+        return $$service;
     }
 })();
 
@@ -234,7 +237,7 @@
             return response;
         };
         service.request = function(config) {
-            DateUtils.convertDatesToUTCStrings(config.data);
+            DateUtils.convertDatesToUTCStrings(config);
             return config;
         };
         return service;
@@ -777,6 +780,17 @@
                 OTHER: "mdi mdi-web material-icons"
             };
         };
+        service.reservationStatusIcons = function() {
+            return {
+                CONFIRMED: "mdi mdi-check md-18 text-success",
+                TBC: "mdi mdi-av-timer md-18 text-info",
+                CANCELLED: "mdi mdi-delete md-18 text-danger",
+                NO_SHOW: "mdi mdi-eye-off md-18 text-black",
+                CREDITCARD_NOT_VALID: "mdi mdi-credit-card-scan md-18 text-warn",
+                CREDITCARD_PENDING: "mdi mdi-credit-card-scan md-18 text-warn",
+                EARLY_CHECKOUT: "mdi mdi-logout-variant md-18 text-blue-sea"
+            };
+        };
         return service;
     }
 })();
@@ -935,7 +949,7 @@
             };
             this.reset = function() {
                 _self.busy = false;
-                _self.executed = true;
+                _self.executed = false;
                 _self.lastPage = false;
                 _self.page = 0;
                 _self.totalPages = 0;
@@ -1897,7 +1911,7 @@
             }
             return peopleAvailability;
         };
-        $$service.bedsAvailability = function(maxBeds, currentBeds, maxCount) {
+        $$service.bedsAvailability = function(maxBeds, currentBeds, maxCount, checkZero) {
             var bedsAvailability = [];
             _.forEach(currentBeds, function(bedSold) {
                 var newBed = angular.copy(bedSold);
@@ -1914,7 +1928,7 @@
                         return (b.bed || b).type == bed.type;
                     });
                     n = _.size(added);
-                    if (n >= bed.count) {
+                    if (checkZero && n <= 0 || n >= bed.count) {
                         return;
                     }
                     var newBed = angular.copy(bed);
@@ -1938,9 +1952,6 @@
             var remainingPeople = $$service.normalizePeople(angular.copy(peopleObj));
             var guestsCount = $$service.guestsCount(remainingPeople);
             _.forEach(roomType.beds, function(bed) {
-                if (guestsCount.standard <= 0 || roomType.bedCount <= count) {
-                    return false;
-                }
                 var n = 0;
                 do {
                     var added = _.filter(beds, function(b) {
@@ -3112,10 +3123,24 @@
         var $$service = this;
         this.$$redirectUrl = redirectUrl || "/login";
         this.responseError = function(rejection) {
-            if (rejection.data && rejection.data.status === 401) {
-                location.assign($$service.$$redirectUrl);
+            var status = rejection.data && rejection.data.status ? rejection.data.status : rejection.status ? rejection.status : null;
+            if (status) {
+                switch (status) {
+                  case 401:
+                    ctrl.$$dialogNotAutorized();
+                    break;
+
+                  case 403:
+                    location.assign($$service.$$redirectUrl);
+                    break;
+                }
             }
             return $q.reject(rejection);
+        };
+        this.$$dialogNotAutorized = function() {
+            $translate([ "error.401", "error.code.401" ]).then(function(translate) {
+                Dialog.showAlert(null, translate["error.401"], translate["error.code.401"]);
+            });
         };
     }
 })();
@@ -3124,23 +3149,37 @@
     "use strict";
     angular.module("itaca.utils").factory("StringUtils", StringUtilsFactory);
     function StringUtilsFactory() {
-        var service = {};
-        service.isBlank = function(string) {
+        var $$service = {};
+        $$service.isBlank = function(string) {
             return _.isUndefined(string) || _.isNull(string) || _.isEmpty(string);
         };
-        service.isNotBlank = function(string) {
-            return !service.isBlank(string);
+        $$service.isNotBlank = function(string) {
+            return !$$service.isBlank(string);
         };
-        service.isEmpty = function(string) {
-            return service.isNotBlank(string) && _.isEmpty(_.trim(string));
+        $$service.isEmpty = function(string) {
+            return $$service.isNotBlank(string) && _.isEmpty(_.trim(string));
         };
-        service.isNotEmpty = function(string) {
-            return !service.isEmpty(string);
+        $$service.isNotEmpty = function(string) {
+            return !$$service.isEmpty(string);
         };
-        service.normalizeForUrl = function(string, useDelimiters) {
+        $$service.normalizeForUrl = function(string, useDelimiters) {
             return _.toLower(_.replace(_.deburr(useDelimiters ? _.snakeCase(string) : string), /[^\w]/gi, ""));
         };
-        return service;
+        $$service.isBoolean = function(string) {
+            try {
+                return _.isBoolean(JSON.parse(string));
+            } catch (e) {
+                return false;
+            }
+        };
+        $$service.toBoolean = function(string) {
+            if ($$service.isBoolean(string)) {
+                return JSON.parse(string);
+            } else {
+                return null;
+            }
+        };
+        return $$service;
     }
 })();
 
