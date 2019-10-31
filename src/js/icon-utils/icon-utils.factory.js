@@ -140,6 +140,7 @@
 				'PHONE'		: 'channel-icon channel-chroma',
 				'EMAIL'		: 'channel-icon channel-chroma',
 				'PORTAL'	: 'channel-icon channel-chroma',
+				'WIDGET'	: 'mdi mdi-monitor-dashboard material-icons',
 				'BOOKING'	: 'channel-icon channel-booking',
 				'EXPEDIA'	: 'channel-icon channel-expedia',
 				'VENERE'	: 'channel-icon channel-venere',
