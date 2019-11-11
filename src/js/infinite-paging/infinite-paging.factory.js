@@ -159,7 +159,7 @@
 				    			_self.lastPage = data.last;
 				    			
 				        		if (newItems && newItems.length > 0) {
-				        			if (angular.isDefined(params.filter)) {
+				        			if (_self.params.filter) {
 				        				_self.items = [];
 				        			}
 				        			

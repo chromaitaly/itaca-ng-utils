@@ -674,7 +674,7 @@
 				return {};
 			}
 			
-			var nights = DateUtils.diff(rateSold.endDate, rateSold.startDate);
+			var nights = DateUtils.diff(rateSold.startDate, rateSold.endDate);
 			
 			var guestsCount = $$service.guestsCount(peopleObj, extraPeopleObj);
 			if (!guestsCount.standard) {
@@ -1153,6 +1153,33 @@
 				// array di ive
 				res.totalVat = {total: totalVat, vatMap: discountArrayVat};
 			}
+			
+			/**
+			 * calcolo un eventuale anticipo
+			 */
+			if ((res.id && res.depositAmount != null) || !res.id){
+				if(res.hotel && res.hotel.deposit && res.hotel.deposit.finalAmount > 0) {
+					var discountRate = res.hotel.deposit.finalAmount > 100 ? 100 : res.hotel.deposit.finalAmount;
+					
+					res.depositAmount = res.depositAmount|| {finalAmount: 0};
+					res.depositAmount.finalAmount =  NumberUtils.fixedDecimals((res.totalAmount.finalAmount * (discountRate / 100)), 2);
+				}
+			}
+
+			/**
+			 * calcolo la tassa di soggiorno
+			 */
+			if ((res.id && res.cityTaxAmount != null) || !res.id){
+				if (res.hotel && res.hotel.cityTax && res.hotel.cityTax.finalAmount > 0) {
+					if(nights && res.guestsCount  && res.guestsCount.total){
+						var daysCount = res.hotel.cityTaxLimit > 0 && nights > res.hotel.cityTaxLimit ? res.hotel.cityTaxLimit : nights;
+		
+						res.cityTaxAmount = res.cityTaxAmount || {};
+						res.cityTaxAmount.finalAmount = res.hotel.cityTax.finalAmount * (res.guestsCount.total *  (daysCount > 0 ? daysCount : 1));
+					}
+				}
+			}
+
 		};
 		
 		$$service.calculateVatMap = function(res, discountPerc) {

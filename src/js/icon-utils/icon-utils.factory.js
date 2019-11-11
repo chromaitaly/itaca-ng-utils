@@ -140,6 +140,7 @@
 				'PHONE'		: 'channel-icon channel-chroma',
 				'EMAIL'		: 'channel-icon channel-chroma',
 				'PORTAL'	: 'channel-icon channel-chroma',
+				'WIDGET'	: 'mdi mdi-monitor-dashboard material-icons',
 				'BOOKING'	: 'channel-icon channel-booking',
 				'EXPEDIA'	: 'channel-icon channel-expedia',
 				'VENERE'	: 'channel-icon channel-venere',
@@ -156,6 +157,24 @@
 				'TRAVELLINK': 'channel-icon channel-travellink',
 				'LILIGO'	: 'channel-icon channel-liligo',
 				'OTHER'		: 'mdi mdi-web material-icons',
+				
+				'Hotels_com'					: 'channel-icon channel-expedia-group',
+				'Expedia_Affiliate_Network'		: 'channel-icon channel-expedia-group',
+				'Egencia'						: 'channel-icon channel-expedia-group',
+				'Travelocity'					: 'channel-icon channel-expedia-group', 
+				'Hotwire'						: 'channel-icon channel-expedia-group', 
+				'CheapTickets'					: 'channel-icon channel-expedia-group', 
+				'Ebookers'						: 'channel-icon channel-expedia-group', 
+				'MrJet'							: 'channel-icon channel-expedia-group', 
+				'Lastminute_au'					: 'channel-icon channel-expedia-group', 
+				'American_Express_Travel'		: 'channel-icon channel-expedia-group', 
+				'Amex_The_Hotel_Collection'		: 'channel-icon channel-expedia-group', 
+				'Amex_FINE_HOTELS_AND_RESORTS'	: 'channel-icon channel-expedia-group', 
+				'Thomas_Cook'					: 'channel-icon channel-expedia-group', 
+				'Neckermann'					: 'channel-icon channel-expedia-group', 
+				'Ving'							: 'channel-icon channel-expedia-group', 
+				'Tjareborg'						: 'channel-icon channel-expedia-group', 
+				'Spies'							: 'channel-icon channel-expedia-group', 
 			};
 		};
 		
