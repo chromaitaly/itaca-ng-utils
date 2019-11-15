@@ -9,24 +9,27 @@
 	
 	function SessionExpiredInterceptorProvider() {
 		var $$redirectUrl = "/login";
+		var $$expiredUrl = "/login?error=expired";
 
-		this.init = function(redirectUrl) {
+		this.init = function(redirectUrl, expiredUrl) {
 			if (!_.isString(redirectUrl)) {
 				return false;
 			}
 			
 			$$redirectUrl = redirectUrl;
+			$$expiredUrl = expiredUrl;
 		};
 
 		this.$get = /* @ngInject */ function($q) {
-		    return new SessionExpiredInterceptor($q, $$redirectUrl);
+		    return new SessionExpiredInterceptor($q, $$redirectUrl, $$expiredUrl);
 		};
 	}
 	
-	function SessionExpiredInterceptor($q, redirectUrl) {
+	function SessionExpiredInterceptor($q, redirectUrl, expiredUrl) {
 		var $$service = this;
 		
 		this.$$redirectUrl = redirectUrl || "/login";
+		this.$$expiredUrl = expiredUrl || "/login?error=expired";
 		
 		this.responseError = function (rejection) {
 			
@@ -34,18 +37,12 @@
 			
 			if(status){
 				switch(status){
-					case 401: ctrl.$$dialogNotAutorized(); break;
+					case 401: location.assign($$service.$$expiredUrl); break;
 					case 403: location.assign($$service.$$redirectUrl); break;
 				}
 			}
 			
     		return $q.reject(rejection);
 		};
-		
-		this.$$dialogNotAutorized = function(){
-			$translate(['error.401', 'error.code.401']).then(function(translate){
-				Dialog.showAlert(null, translate['error.401'],  translate['error.code.401']);
-			});
-		}
 	}
 })();

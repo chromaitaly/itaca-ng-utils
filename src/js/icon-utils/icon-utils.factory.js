@@ -137,9 +137,9 @@
 		
 		service.portalIcons = function(){
 			return {
-				'PHONE'		: 'channel-icon channel-chroma',
-				'EMAIL'		: 'channel-icon channel-chroma',
-				'PORTAL'	: 'channel-icon channel-chroma',
+				'PHONE'		: 'channel-icon channel-portal',
+				'EMAIL'		: 'channel-icon channel-portal',
+				'PORTAL'	: 'channel-icon channel-portal',
 				'WIDGET'	: 'mdi mdi-monitor-dashboard material-icons',
 				'BOOKING'	: 'channel-icon channel-booking',
 				'EXPEDIA'	: 'channel-icon channel-expedia',
