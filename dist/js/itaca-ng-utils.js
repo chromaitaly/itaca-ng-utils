@@ -685,25 +685,15 @@
         };
         service.paymentIcons = function() {
             return {
-                PAYPAL: "pf pf-paypal",
-                VISA: "pf pf-visa",
-                MASTERCARD: "pf pf-mastercard",
-                AMEX: "pf pf-american-express",
-                BIT_COIN: "pf pf-bitcoin",
-                CARTA_SI: "pf pf-carta-si",
-                DINERS_CLUB: "pf pf-diners",
-                DISCOVER: "pf pf-discover",
-                JCB: "pf pf-jcb",
-                UNION_PAY: "pf pf-unionpay",
-                VISA_ELECTRON: "pf pf-visa-electron",
-                V_PAY: "pf pf-visa",
-                MAESTRO: "pf pf-maestro",
-                CIRRUS: "pf pf-cirrus",
-                POSTEPAY: "pf pf-postepay",
-                APPLE_PAY: "pf pf-apple-pay",
-                PAGSEGURO: "pf pf-pagseguro",
-                BANCONTACT: "pf pf-bancontact-mister-cash",
-                BANCOMAT: "pf pf-card"
+                PAYPAL: "ch-pay-icon ch-pay-icon-paypal",
+                VISA: "ch-pay-icon ch-pay-icon-visa",
+                MASTERCARD: "ch-pay-icon ch-pay-icon-mastercard",
+                AMEX: "ch-pay-icon ch-pay-icon-amex",
+                DINERS_CLUB: "ch-pay-icon ch-pay-icon-diners",
+                DISCOVER: "ch-pay-icon ch-pay-icon-discover",
+                JCB: "ch-pay-icon ch-pay-icon-jcb",
+                UNION_PAY: "ch-pay-icon ch-pay-icon-unionpay",
+                MAESTRO: "ch-pay-icon ch-pay-icon-maestro"
             };
         };
         service.serviceIcons = function() {
@@ -762,6 +752,7 @@
                 PHONE: "channel-icon channel-chroma",
                 EMAIL: "channel-icon channel-chroma",
                 PORTAL: "channel-icon channel-chroma",
+                WIDGET: "mdi mdi-monitor-dashboard material-icons",
                 BOOKING: "channel-icon channel-booking",
                 EXPEDIA: "channel-icon channel-expedia",
                 VENERE: "channel-icon channel-venere",
@@ -777,7 +768,24 @@
                 OPODO: "channel-icon channel-opodo",
                 TRAVELLINK: "channel-icon channel-travellink",
                 LILIGO: "channel-icon channel-liligo",
-                OTHER: "mdi mdi-web material-icons"
+                OTHER: "mdi mdi-web material-icons",
+                Hotels_com: "channel-icon channel-expedia-group",
+                Expedia_Affiliate_Network: "channel-icon channel-expedia-group",
+                Egencia: "channel-icon channel-expedia-group",
+                Travelocity: "channel-icon channel-expedia-group",
+                Hotwire: "channel-icon channel-expedia-group",
+                CheapTickets: "channel-icon channel-expedia-group",
+                Ebookers: "channel-icon channel-expedia-group",
+                MrJet: "channel-icon channel-expedia-group",
+                Lastminute_au: "channel-icon channel-expedia-group",
+                American_Express_Travel: "channel-icon channel-expedia-group",
+                Amex_The_Hotel_Collection: "channel-icon channel-expedia-group",
+                Amex_FINE_HOTELS_AND_RESORTS: "channel-icon channel-expedia-group",
+                Thomas_Cook: "channel-icon channel-expedia-group",
+                Neckermann: "channel-icon channel-expedia-group",
+                Ving: "channel-icon channel-expedia-group",
+                Tjareborg: "channel-icon channel-expedia-group",
+                Spies: "channel-icon channel-expedia-group"
             };
         };
         service.reservationStatusIcons = function() {
@@ -788,7 +796,25 @@
                 NO_SHOW: "mdi mdi-eye-off md-18 text-black",
                 CREDITCARD_NOT_VALID: "mdi mdi-credit-card-scan md-18 text-warn",
                 CREDITCARD_PENDING: "mdi mdi-credit-card-scan md-18 text-warn",
-                EARLY_CHECKOUT: "mdi mdi-logout-variant md-18 text-blue-sea"
+                EARLY_CHECKOUT: "mdi mdi-logout-variant md-18 text-blue-sea",
+                PAYMENT_PENDING: "mdi mdi-lock-clock md-18 text-warn"
+            };
+        };
+        service.notificationIcons = function() {
+            return {
+                ALERT: "mdi mdi-information",
+                PRE_AUTH: "mdi mdi-cash-usd",
+                CHARGE: "mdi mdi-square-inc-cash",
+                EXTERNAL_SERVICE: "mdi mdi-taxi",
+                RATESHEET: "mdi mdi-cash-usd ",
+                CHANNEL_MANAGER_SYNC: "mdi mdi-cloud-sync",
+                CHANNEL_MANAGER_RESERVATION: "mdi mdi-cloud-download-outline",
+                MESSAGE: "mdi mdi-message-text",
+                REVIEW: "mdi mdi-thumbs-up-down",
+                STATS: "mdi mdi-chart-bar",
+                PWD_EXPIRATION: "mdi mdi-account-key",
+                RATES: "mdi currency-usd",
+                BILLING: "mdi mdi-cash-multiple"
             };
         };
         return service;
@@ -905,7 +931,7 @@
                                 _self.totalItems = data.totalElements;
                                 _self.lastPage = data.last;
                                 if (newItems && newItems.length > 0) {
-                                    if (angular.isDefined(params.filter)) {
+                                    if (_self.params.filter) {
                                         _self.items = [];
                                     }
                                     angular.forEach(newItems, function(value, key) {
@@ -1456,7 +1482,7 @@
 (function() {
     "use strict";
     ReservationUtilsFactory.$inject = [ "$translate", "NumberUtils", "AmountUtils", "ObjectUtils", "DateUtils", "LocalStorage", "RESERVATION" ];
-    angular.module("itaca.utils").factory("ReservationUtils", ReservationUtilsFactory);
+    angular.module("itaca-utils").factory("ReservationUtils", ReservationUtilsFactory);
     function ReservationUtilsFactory($translate, NumberUtils, AmountUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION) {
         var $$service = {};
         $$service.reservationSourceOptions = {
@@ -1921,23 +1947,25 @@
                 newBed.$$editing = false;
                 bedsAvailability.push(newBed);
             });
-            _.forEach(maxBeds, function(bed) {
-                var n = 0;
-                do {
-                    var added = _.filter(bedsAvailability, function(b) {
-                        return (b.bed || b).type == bed.type;
-                    });
-                    n = _.size(added);
-                    if (checkZero && n <= 0 || n >= bed.count) {
-                        return;
-                    }
-                    var newBed = angular.copy(bed);
-                    newBed.uid = NumberUtils.uniqueNumber();
-                    newBed.$$available = true;
-                    newBed.$$blocked = _.size(currentBeds) >= maxCount;
-                    bedsAvailability.push(newBed);
-                } while (n < bed.count);
-            });
+            if (maxBeds && !_.isEmpty(maxBeds)) {
+                _.forEach(maxBeds, function(bed) {
+                    var n = 0;
+                    do {
+                        var added = _.filter(bedsAvailability, function(b) {
+                            return (b.bed || b).type == bed.type;
+                        });
+                        n = _.size(added);
+                        if (checkZero && n <= 0 || n >= bed.count) {
+                            return;
+                        }
+                        var newBed = angular.copy(bed);
+                        newBed.uid = NumberUtils.uniqueNumber();
+                        newBed.$$available = true;
+                        newBed.$$blocked = _.size(currentBeds) >= maxCount;
+                        bedsAvailability.push(newBed);
+                    } while (n < bed.count);
+                });
+            }
             return bedsAvailability;
         };
         $$service.$generateRoomIncludedServices = function(roomType, peopleObj, nights, initialServices) {
@@ -1979,7 +2007,7 @@
             if (!rateSold || !roomType || !vatRate) {
                 return {};
             }
-            var nights = DateUtils.diff(rateSold.endDate, rateSold.startDate);
+            var nights = DateUtils.diff(rateSold.startDate, rateSold.endDate);
             var guestsCount = $$service.guestsCount(peopleObj, extraPeopleObj);
             if (!guestsCount.standard) {
                 peopleObj = {
@@ -2233,10 +2261,13 @@
                     _.forEach(room.totalRate.dailyRates, function(daily) {
                         if (!_.isNil(daily.promotion)) {
                             var price = 0;
-                            if (daily.promotion.discount.type != "PRICE") {
-                                price = daily.amount.initialAmount - daily.amount.initialAmount * ((100 - daily.promotion.discount.finalAmount) / 100);
-                            } else {
-                                price = daily.amount.initialAmount - daily.promotion.discount.finalAmount;
+                            if (daily.promotion.discount && daily.promotion.discount.finalAmount) {
+                                price = daily.amount.finalAmount;
+                                if (daily.promotion.discount.type == "PRICE") {
+                                    price = daily.amount.initialAmount - daily.promotion.discount.finalAmount;
+                                } else {
+                                    price = daily.amount.initialAmount - daily.amount.initialAmount * ((100 - daily.promotion.discount.finalAmount) / 100);
+                                }
                             }
                             var aPromo = _.find(arrayPromo, function(pr) {
                                 return daily.promotion.id && pr.promo.id == daily.promotion.id;
@@ -2246,7 +2277,7 @@
                             } else {
                                 arrayPromo.push({
                                     promo: daily.promotion,
-                                    percentage: daily.promotion.discount.type != "PRICE" ? daily.promotion.discount.finalAmount + "%" : null,
+                                    percentage: daily.promotion.discount && daily.promotion.discount.type != "PRICE" && daily.promotion.discount.finalAmount ? daily.promotion.discount.finalAmount + "%" : null,
                                     price: price
                                 });
                             }
@@ -2358,6 +2389,24 @@
                     total: totalVat,
                     vatMap: discountArrayVat
                 };
+            }
+            if (res.id && res.depositAmount != null || !res.id) {
+                if (res.hotel && res.hotel.deposit && res.hotel.deposit.finalAmount > 0) {
+                    var discountRate = res.hotel.deposit.finalAmount > 100 ? 100 : res.hotel.deposit.finalAmount;
+                    res.depositAmount = res.depositAmount || {
+                        finalAmount: 0
+                    };
+                    res.depositAmount.finalAmount = NumberUtils.fixedDecimals(res.totalAmount.finalAmount * (discountRate / 100), 2);
+                }
+            }
+            if (res.id && res.cityTaxAmount != null || !res.id) {
+                if (res.hotel && res.hotel.cityTax && res.hotel.cityTax.finalAmount > 0) {
+                    if (nights && res.guestsCount && res.guestsCount.total) {
+                        var daysCount = res.hotel.cityTaxLimit > 0 && nights > res.hotel.cityTaxLimit ? res.hotel.cityTaxLimit : nights;
+                        res.cityTaxAmount = res.cityTaxAmount || {};
+                        res.cityTaxAmount.finalAmount = res.hotel.cityTax.finalAmount * (res.guestsCount.total * (daysCount > 0 ? daysCount : 1));
+                    }
+                }
             }
         };
         $$service.calculateVatMap = function(res, discountPerc) {
@@ -2976,7 +3025,7 @@
         $$service.bestPromotionForRates = function(rates) {
             var promotions = [];
             _.forEach(rates, function(rate) {
-                promotions = _.union(promotion, rate.promotions);
+                promotions = _.union(promotions, rate.promotions);
             });
             return $$service.bestPromotion(promotions);
         };
@@ -2994,6 +3043,60 @@
                 }
             }
             return amount;
+        };
+        $$service.getReservationPenalty = function(reservation) {
+            if (!reservation) {
+                return;
+            }
+            var penalty = {
+                STANDARD: {
+                    date: null,
+                    amount: null
+                },
+                NOT_REFUNDABLE: {
+                    date: null,
+                    amount: null
+                },
+                TOTAL: [],
+                TOTAL_AMOUNT: angular.copy(reservation.totalAmount)
+            };
+            _.forEach(reservation.rooms, function(room) {
+                penalty[room.totalRate.type].date = room.totalRate.cancellationPolicy.limitDate || new Date();
+                penalty[room.totalRate.type].amount = AmountUtils.sum(penalty[room.totalRate.type].amount, room.totalRate.cancellationPolicy ? room.totalRate.cancellationPolicy.amount : 0);
+            });
+            var stDate = penalty["STANDARD"].date, nrDate = penalty["NOT_REFUNDABLE"].date;
+            if (stDate && !nrDate) {
+                penalty["TOTAL"].push({
+                    startDate: stDate,
+                    amount: penalty["STANDARD"].amount
+                });
+            } else if (!stDate && nrDate) {
+                penalty["TOTAL"].push({
+                    startDate: nrDate,
+                    amount: penalty["NOT_REFUNDABLE"].amount
+                });
+            } else if (stDate && nrDate) {
+                if (stDate && nrDate && stDate.getTime() > nrDate.getTime()) {
+                    penalty["TOTAL"].push({
+                        startDate: nrDate,
+                        endDate: stDate,
+                        amount: penalty["NOT_REFUNDABLE"].amount
+                    }, {
+                        startDate: stDate,
+                        amount: AmountUtils.sum(penalty["STANDARD"].amount, penalty["NOT_REFUNDABLE"].amount)
+                    });
+                } else {
+                    penalty["TOTAL"].push({
+                        startDate: stDate,
+                        endDate: nrDate,
+                        amount: penalty["STANDARD"].amount
+                    }, {
+                        startDate: nrDate,
+                        amount: AmountUtils.sum(penalty["STANDARD"].amount, penalty["NOT_REFUNDABLE"].amount)
+                    });
+                }
+            }
+            return penalty;
         };
         $$service.generatePhysicalRoomsList = function(physicalRoomsList, dailyAv) {
             if (!dailyAv || _.isEmpty(dailyAv)) {

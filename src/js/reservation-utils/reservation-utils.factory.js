@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("itaca.utils").factory('ReservationUtils', ReservationUtilsFactory);
+	angular.module("itaca-utils").factory('ReservationUtils', ReservationUtilsFactory);
 	
 	/* @ngInject */
 	function ReservationUtilsFactory($translate, NumberUtils, AmountUtils, ObjectUtils, PaletteUtils, DateUtils, LocalStorage, RESERVATION){
@@ -582,30 +582,32 @@
 			});
 			
 			// inserisco tutti gli altri letti mancanti
-			_.forEach(maxBeds, function(bed){
-				var n = 0;
-				do {
-					// letti di questo tipo già aggiunti
-					var added = _.filter(bedsAvailability, function(b) {
-						return (b.bed || b).type == bed.type;
-					});
-					
-					n = _.size(added);
-
-					// se sono stati già inseriti tutti i letti di questo tipo vado al prossimo
-					if ((checkZero && n <= 0) || n >= bed.count) {
-						return;
-					}
-					
-					var newBed = angular.copy(bed);
-					newBed.uid = NumberUtils.uniqueNumber();
-					newBed.$$available = true;
-					newBed.$$blocked = _.size(currentBeds) >= maxCount;
-					
-					// inserisco il letto nella lista
-					bedsAvailability.push(newBed);
-				} while (n < bed.count);
-			});
+			if(maxBeds && !_.isEmpty(maxBeds)){
+				_.forEach(maxBeds, function(bed){
+					var n = 0;
+					do {
+						// letti di questo tipo già aggiunti
+						var added = _.filter(bedsAvailability, function(b) {
+							return (b.bed || b).type == bed.type;
+						});
+						
+						n = _.size(added);
+	
+						// se sono stati già inseriti tutti i letti di questo tipo vado al prossimo
+						if ((checkZero && n <= 0) || n >= bed.count) {
+							return;
+						}
+						
+						var newBed = angular.copy(bed);
+						newBed.uid = NumberUtils.uniqueNumber();
+						newBed.$$available = true;
+						newBed.$$blocked = _.size(currentBeds) >= maxCount;
+						
+						// inserisco il letto nella lista
+						bedsAvailability.push(newBed);
+					} while (n < bed.count);
+				});
+			}
 			
 			return bedsAvailability;
 		};
@@ -983,24 +985,30 @@
 					_.forEach(room.totalRate.dailyRates, function(daily){
 						// se c'è una promo
 						if(!_.isNil(daily.promotion)){
-							
-							// calcolo lo sconto da togliere per singolo rate
+							// calcolo lo sconto da applicare per singolo rate
 							var price = 0;
-							if(daily.promotion.discount.type != 'PRICE'){
-								price = daily.amount.initialAmount - (daily.amount.initialAmount * ((100 - daily.promotion.discount.finalAmount)/100));
-							} else {
-								price = daily.amount.initialAmount - daily.promotion.discount.finalAmount;
+							
+							if (daily.promotion.discount && daily.promotion.discount.finalAmount) {	
+								price = daily.amount.finalAmount;
+								
+								if(daily.promotion.discount.type == 'PRICE'){
+									price = daily.amount.initialAmount - daily.promotion.discount.finalAmount;
+									
+								} else {
+									price = daily.amount.initialAmount - (daily.amount.initialAmount * ((100 - daily.promotion.discount.finalAmount)/100));
+								}
 							}
 							
 							// inserisco la promo nell'array delle promozioni
 							var aPromo = _.find(arrayPromo, function(pr){return daily.promotion.id && pr.promo.id == daily.promotion.id;});
-							if(aPromo){
+							
+							if (aPromo){
 								aPromo.price += price;
 								
-							}else {
+							} else {
 								arrayPromo.push({
 									promo: daily.promotion,
-									percentage: daily.promotion.discount.type != 'PRICE' ? daily.promotion.discount.finalAmount + '%' : null,
+									percentage: daily.promotion.discount && daily.promotion.discount.type != 'PRICE' && daily.promotion.discount.finalAmount ? daily.promotion.discount.finalAmount + '%' : null,
 									price: price,
 								});
 							}
@@ -2160,7 +2168,7 @@
 			var promotions = [];
 			
 			_.forEach(rates, function(rate){
-				promotions = _.union(promotion, rate.promotions);
+				promotions = _.union(promotions, rate.promotions);
 			});
 			
 			return $$service.bestPromotion(promotions);
@@ -2182,6 +2190,50 @@
 			}
 
 			return amount;
+		};
+		
+		$$service.getReservationPenalty = function(reservation){
+			if(!reservation){
+				return;
+			}
+			
+			var penalty = {
+				"STANDARD":{date: null, amount: null},
+				"NOT_REFUNDABLE":{date: null, amount: null},
+				"TOTAL": [],
+				"TOTAL_AMOUNT": angular.copy(reservation.totalAmount)
+			};
+			
+			_.forEach(reservation.rooms,function(room){
+				penalty[room.totalRate.type].date = room.totalRate.cancellationPolicy.limitDate ||new Date();
+				penalty[room.totalRate.type].amount = AmountUtils.sum(penalty[room.totalRate.type].amount, (room.totalRate.cancellationPolicy ? room.totalRate.cancellationPolicy.amount : 0));
+			});
+			
+			var stDate = penalty["STANDARD"].date, nrDate = penalty["NOT_REFUNDABLE"].date;
+			
+			if(stDate && !nrDate){
+				penalty["TOTAL"].push({startDate: stDate, amount: penalty["STANDARD"].amount });
+				
+			}else if(!stDate && nrDate){
+				penalty["TOTAL"].push({startDate: nrDate, amount: penalty["NOT_REFUNDABLE"].amount });
+				
+			} else if(stDate && nrDate){
+				if (stDate && nrDate && stDate.getTime() > nrDate.getTime()) {
+					penalty["TOTAL"].push(
+						{startDate: nrDate, endDate: stDate, amount: penalty["NOT_REFUNDABLE"].amount},
+						{startDate: stDate, amount: AmountUtils.sum(penalty["STANDARD"].amount, penalty["NOT_REFUNDABLE"].amount)}
+					);
+					
+				} else {
+					penalty["TOTAL"].push(
+						{startDate: stDate, endDate: nrDate, amount: penalty["STANDARD"].amount},
+						{startDate: nrDate, amount: AmountUtils.sum(penalty["STANDARD"].amount, penalty["NOT_REFUNDABLE"].amount) }
+					);
+					
+				}
+			}
+				
+			return penalty;
 		};
 		
 		/**

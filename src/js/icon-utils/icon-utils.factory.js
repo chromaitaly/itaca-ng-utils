@@ -191,6 +191,24 @@
 			};
 		};
 		
+		service.notificationIcons = function(){
+			return {
+				ALERT : 'mdi mdi-information',
+				PRE_AUTH : 'mdi mdi-cash-usd',
+				CHARGE : 'mdi mdi-square-inc-cash',
+				EXTERNAL_SERVICE : 'mdi mdi-taxi',
+				RATESHEET : 'mdi mdi-cash-usd ',
+				CHANNEL_MANAGER_SYNC : 'mdi mdi-cloud-sync',
+				CHANNEL_MANAGER_RESERVATION : 'mdi mdi-cloud-download-outline',
+				MESSAGE : 'mdi mdi-message-text',
+				REVIEW : 'mdi mdi-thumbs-up-down',
+				STATS : 'mdi mdi-chart-bar',
+				PWD_EXPIRATION : 'mdi mdi-account-key', 
+				RATES: 'mdi currency-usd',
+				BILLING: 'mdi mdi-cash-multiple'
+			};
+		};
+		
 		return service;
 	}
 })();
