@@ -8,14 +8,18 @@
 	angular.module("itaca.utils").provider('i18nLoader', i18nLoaderProvider);
 	
 	function i18nLoaderProvider() {
-		var $$i18nResources = "/api/rs/public/i18n";
+		var $$i18nResources = ["/rs/public/i18n", "/api/rs/public/i18n"];
 		
 		this.setResources = function(resources) {
-			if (!angular.isString(resources) && angular.isArray(resources)) {
+			if (angular.isString(resources)) {
+				$$i18nResources = [resources];
+				
+			} else if (angular.isArray(resources)) {
+				$$i18nResources = resources;
+			
+			} else {
 				return false;
 			}
-			
-			$$i18nResources = resources;
 		};
 
 		this.$get = /* @ngInject */ function($log, $http, $q, $interpolate) {
@@ -74,6 +78,7 @@
 		          }
 		
 		          deferred.resolve(mergedData);
+		          
 		        }, function (data) {
 		          deferred.reject(data);
 		        });

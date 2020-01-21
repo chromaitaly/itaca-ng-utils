@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 	
-	angular.module("itaca-utils").factory('ReservationUtils', ReservationUtilsFactory);
+	angular.module("itaca.utils").factory('ReservationUtils', ReservationUtilsFactory);
 	
 	/* @ngInject */
 	function ReservationUtilsFactory($translate, NumberUtils, AmountUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION){
@@ -2280,6 +2280,24 @@
 		
 		$$service.beautifyCardPan = function(pan) {
 			return String(pan).replace(/-/g, "").replace(/(.{4})/g, "$1 ").replace(/-([^-]*)$/, "$1");
+		};
+		
+		$$service.isFreeCancellationPolicy = function(policy) {
+			return !policy
+					|| ((!policy.reservationPenalty || !policy.reservationPenalty.percentage) && (!policy.checkinPenalty || !policy.checkinPenalty.percentage));
+		};
+
+		$$service.isNotRefundablePolicy = function(policy) {
+			return policy
+					&& (!policy.deadline || policy.deadline <= 0)
+					&& ((policy.reservationPenalty && policy.reservationPenalty.percentage == 100) || (policy.checkinPenalty && policy.checkinPenalty.percentage == 100));
+		};
+
+		$$service.isPartiallyRefundablePolicy = function(policy) {
+			return policy
+					&& ((policy.reservationPenalty
+							&& policy.reservationPenalty.percentage > 0 && policy.reservationPenalty.percentage < 100) || (policy.checkinPenalty
+							&& policy.checkinPenalty.percentage > 0 && policy.checkinPenalty.percentage < 100));
 		};
 		
 		return $$service;	
