@@ -8,13 +8,15 @@
 	angular.module("itaca.utils").factory('ReservationUtils', ReservationUtilsFactory);
 	
 	/* @ngInject */
-	function ReservationUtilsFactory($translate, NumberUtils, AmountUtils, ObjectUtils, DateUtils, LocalStorage, RESERVATION){
+	function ReservationUtilsFactory($translate, NumberUtils, AmountUtils, ObjectUtils, PaletteUtils, DateUtils, LocalStorage, RESERVATION){
 		var $$service = {};
 		
 		$$service.reservationSourceOptions = {
-			'PHONE': {defaultColor: "#ea80fc"},		
-			'EMAIL': {defaultColor: "#d500f9"},	
-			'PORTAL': {defaultColor: "#8e24aa"},	
+			'PHONE' : {defaultColor: PaletteUtils.getCurrentPaletteHEX('500')},
+			'EMAIL' : {defaultColor: PaletteUtils.getCurrentPaletteHEX('600')},
+			'PORTAL': {defaultColor: PaletteUtils.getCurrentPaletteHEX('700')},
+			'WIDGET': {defaultColor: PaletteUtils.getCurrentPaletteHEX('800')},
+			
 			'BOOKING': {defaultColor: "#3f51b5"},	
 			'EXPEDIA': {defaultColor: "#ffc107"},	
 			'AIRBNB': {defaultColor: "#f44336"},
