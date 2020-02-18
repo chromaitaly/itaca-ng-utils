@@ -104,6 +104,10 @@
 		};
 		
 		$$service.calculateGuestDocuments = function(room){
+			if(!room){
+				return false;
+			}
+			
 			room.identityDocuments = (room.identityDocuments && room.identityDocuments.length > 0) ? room.identityDocuments : [];
 			
 			room.guestsCount = $$service.guestsCount(room.people, room.extraPeople);
@@ -914,36 +918,40 @@
 		};
 		
 		$$service.updatePolicyAmount = function(roomSold, policySold, nights) {
-			if (!roomSold || !policySold || !nights) {
+			if (!roomSold || !policySold || !policySold.policy || !nights) {
 				return;
 			}
 			
-			var chargeNights = policySold.cancellation.chargeNights;
-			var perc = (policySold.cancellation.percentage || 0);
-			perc = perc <= 100 ? perc : 100;
-			
-			var amount = {finalAmount: 0};
-			
-			// calcolo importo intero
-			
-			if (chargeNights < 0 || chargeNights == nights) {
-				// intero soggiorno
-				amount.finalAmount = NumberUtils.fixedDecimals(roomSold.totalRate.amount.finalAmount);
-				
-			} else {
-				// notti
-				for (var i=0; i < chargeNights; i++) {
-					var dailyRate = roomSold.totalRate.dailyRates[i];
-					if (dailyRate) {
-						amount.finalAmount += NumberUtils.fixedDecimals(dailyRate.amount.finalAmount);
-					}
-				}
+			if (policySold.policy.reservationPenalty) {
+				policySold.reservationPenaltyAmount = $$service.calculatePenaltyAmount(policySold.policy.reservationPenalty, roomSold.totalRate);
 			}
 			
-			// applico percentuale
-			amount.finalAmount = amount.finalAmount * (perc/100);
+			if (policySold.policy.checkinPenalty) {
+				policySold.checkinPenaltyAmount = $$service.calculatePenaltyAmount(policySold.policy.checkinPenalty, roomSold.totalRate);
+			}
+		};
+		
+		$$service.calculatePenaltyAmount = function(penalty, totalRate) {
+			var price = 0;
 			
-			policySold.amount = amount;
+			if (penalty && totalRate) {
+				if (penalty.firstNight) {
+					// prima notte
+					var firstNight = _.minBy(totalRate.dailyRates, function(r) {
+						return r.date.getTime();
+					});
+					
+					if (firstNight) {
+						price = firstNight.rate.amount.finalAmount / 100 * penalty.percentage;						
+					}
+
+				} else {
+					// intero soggiorno
+					price = totalRate.amount.finalAmount / 100 * penalty.percentage;
+				}
+			}
+
+			return {finalAmount: NumberUtils.fixedDecimals(price), currency: totalRate.amount.currency};			
 		};
 		
 		$$service.calculateTotalPrice = function(res) {
@@ -982,33 +990,33 @@
 					totalVat += room.totalRate.amount.vatAmount;
 							
 					// recuopero il totale delle promo
-					_.forEach(room.totalRate.dailyRates, function(daily){
+					_.forEach(room.totalRate.dailyRates, function(dailyRate){
 						// se c'è una promo
-						if(!_.isNil(daily.promotion)){
+						if(!_.isNil(dailyRate.promotion)){
 							// calcolo lo sconto da applicare per singolo rate
 							var price = 0;
 							
-							if (daily.promotion.discount && daily.promotion.discount.finalAmount) {	
-								price = daily.amount.finalAmount;
+							if (dailyRate.promotion.discount && dailyRate.promotion.discount.finalAmount) {	
+								price = dailyRate.rate.amount.finalAmount;
 								
-								if(daily.promotion.discount.type == 'PRICE'){
-									price = daily.amount.initialAmount - daily.promotion.discount.finalAmount;
+								if(dailyRate.promotion.discount.type == 'PRICE'){
+									price = dailyRate.rate.amount.initialAmount - dailyRate.promotion.discount.finalAmount;
 									
 								} else {
-									price = daily.amount.initialAmount - (daily.amount.initialAmount * ((100 - daily.promotion.discount.finalAmount)/100));
+									price = dailyRate.rate.amount.initialAmount - (dailyRate.rate.amount.initialAmount * ((100 - dailyRate.promotion.discount.finalAmount)/100));
 								}
 							}
 							
 							// inserisco la promo nell'array delle promozioni
-							var aPromo = _.find(arrayPromo, function(pr){return daily.promotion.id && pr.promo.id == daily.promotion.id;});
+							var aPromo = _.find(arrayPromo, function(pr){return dailyRate.promotion.id && pr.promo.id == dailyRate.promotion.id;});
 							
 							if (aPromo){
 								aPromo.price += price;
 								
 							} else {
 								arrayPromo.push({
-									promo: daily.promotion,
-									percentage: daily.promotion.discount && daily.promotion.discount.type != 'PRICE' && daily.promotion.discount.finalAmount ? daily.promotion.discount.finalAmount + '%' : null,
+									promo: dailyRate.promotion,
+									percentage: dailyRate.promotion.discount && dailyRate.promotion.discount.type != 'PRICE' && dailyRate.promotion.discount.finalAmount ? dailyRate.promotion.discount.finalAmount + '%' : null,
 									price: price,
 								});
 							}
@@ -1181,7 +1189,6 @@
 					}
 				}
 			}
-
 		};
 		
 		$$service.calculateVatMap = function(res, discountPerc) {
@@ -1552,13 +1559,17 @@
 			if(cancelledRoom.totalRate.cancellationPolicy){
 				// imposto il cancelAmount
 				cancelledRoom.tempStatus = 'penalty';
-				cancelledRoom.cancelAmount.finalAmount = cancelledRoom.totalRate.cancellationPolicy.amount.finalAmount;
 				
-				// se ha una tolleranza e questa è valida
-				if(cancelledRoom.totalRate.cancellationPolicy.limitDate && moment(cancelledRoom.totalRate.cancellationPolicy.limitDate).utcOffset((reservation.hotel.addressInfo.offset || 0)/60).isSameOrAfter(targetMoment)){
-					cancelledRoom.cancelAmount.finalAmount = 0;
-					cancelledRoom.tempStatus = 'free';
+				var policyAmount = null;
+				
+				if (cancelledRoom.totalRate.cancellationPolicy.deadline) {
+					policyAmount = targetMoment.isSameOrBefore(moment(cancelledRoom.totalRate.cancellationPolicy.deadline)) ? cancelledRoom.totalRate.cancellationPolicy.reservationPenaltyAmount : cancelledRoom.totalRate.cancellationPolicy.checkinPenaltyAmount;
+				
+				} else {
+					policyAmount = cancelledRoom.totalRate.cancellationPolicy.checkinPenaltyAmount;
 				}
+				
+				cancelledRoom.cancelAmount.finalAmount = policyAmount ? policyAmount.finalAmount : 0;
 				
 			} else {
 				// se non ha una policy vuol dire che ha la promozione
@@ -1909,9 +1920,9 @@
 				// calcolo il prezzo totale delle notti da addebitare
 				var toChargeAmount = {initialAmount: 0, finalAmount: 0, currency: roomCurrency};
 				
-				_.forEach(terminatedRoom.totalRate.dailyRates, function(rate) {
-					toChargeAmount.initialAmount += NumberUtils.fixedDecimals(rate.amount.initialAmount || rate.amount.finalAmount);
-					toChargeAmount.finalAmount += NumberUtils.fixedDecimals(rate.amount.finalAmount);
+				_.forEach(terminatedRoom.totalRate.dailyRates, function(dailyRate) {
+					toChargeAmount.initialAmount += NumberUtils.fixedDecimals(dailyRate.rate.amount.initialAmount || dailyRate.rate.amount.finalAmount);
+					toChargeAmount.finalAmount += NumberUtils.fixedDecimals(dailyRate.rate.amount.finalAmount);
 				});
 				
 				// aggiorno il prezzo della camera
@@ -1939,13 +1950,13 @@
 				var chargeRange = policyRange && policyRange.diff("days") > ratesRange.diff("days") ? policyRange : ratesRange;
 				
 				// disabilito i rate giornalieri non addebitabili
-				_.forEach(terminatedRoom.totalRate.initialDailyRates, function(rate) {
-					var rateDate = moment(rate.date);
+				_.forEach(terminatedRoom.totalRate.initialDailyRates, function(dailyRate) {
+					var rateDate = moment(dailyRate.date);
 		
 					// se la notte è da addebitare, ne adeguo l'importo
 					if (chargeRange.contains(rateDate, {exclusive: true})) {
-						rate.disabled = false;
-						rate.toRemove = false;
+						dailyRate.disabled = false;
+						dailyRate.toRemove = false;
 						
 						// se la notte non è stata usufruita ma fa parte delle
 						// notti della penale, ne addebito solamente la
@@ -1955,20 +1966,20 @@
 							terminatedRoom.tempStatus = 'penalty';
 							
 							// setto la tariffa disabilitata (non usufruita)
-							rate.disabled = true;
+							dailyRate.disabled = true;
 							// se la percentuale di addebito non è del 100%, la
 							// ricalcolo
 							if (cancellationPolicy.percentage < 100) {
 								// memorizzo l'importo iniziale
-								rate.amount.initialAmount = rate.amount.finalAmount;
+								dailyRate.rate.amount.initialAmount = dailyRate.rate.amount.finalAmount;
 								// calcolo importo finale
-								rate.amount.finalAmount = NumberUtils.calculateDiscount(rate.amount.finalAmount, cancellationPolicy.percentage, "PERCENTAGE");
+								dailyRate.rate.amount.finalAmount = NumberUtils.calculateDiscount(dailyRate.rate.amount.finalAmount, cancellationPolicy.percentage, "PERCENTAGE");
 							}
 						}
 		
 					} else {
-						rate.disabled = true;
-						rate.toRemove = true;
+						dailyRate.disabled = true;
+						dailyRate.toRemove = true;
 					}
 				});
 				
@@ -1980,9 +1991,9 @@
 				// calcolo il prezzo totale delle notti da addebitare
 				var toChargeAmount = {initialAmount: 0, finalAmount: 0, currency: roomCurrency};
 				
-				_.forEach(terminatedRoom.totalRate.dailyRates, function(rate) {
-					toChargeAmount.initialAmount += NumberUtils.fixedDecimals(rate.amount.initialAmount || rate.amount.finalAmount);
-					toChargeAmount.finalAmount += NumberUtils.fixedDecimals(rate.amount.finalAmount);
+				_.forEach(terminatedRoom.totalRate.dailyRates, function(dailyRate) {
+					toChargeAmount.initialAmount += NumberUtils.fixedDecimals(dailyRate.rate.amount.initialAmount || dailyRate.rate.amount.finalAmount);
+					toChargeAmount.finalAmount += NumberUtils.fixedDecimals(dailyRate.rate.amount.finalAmount);
 				});
 				
 				// l'importo da addebitare non può essere inferiore a quello della
@@ -2055,7 +2066,7 @@
 					var serviceEndDate = moment(serviceSold.endDate || roomRange.end);
 					
 					for (var date=moment(roomRange.start); date.isBefore(moment(roomRange.end), "days"); date.add(1, "days")) {
-						serviceSold.dailyRates.push({"date": date.toDate(), amount: date.isBefore(serviceStartDate, "days") || date.isAfter(serviceEndDate, "days") ? null : dailyAmount, disabled: date.isSameOrAfter(terminationRange.end, "days")});
+						serviceSold.dailyRates.push({"date": date.toDate(), rate: {amount: date.isBefore(serviceStartDate, "days") || date.isAfter(serviceEndDate, "days") ? null : dailyAmount}, disabled: date.isSameOrAfter(terminationRange.end, "days")});
 					}
 				}
 				
@@ -2107,7 +2118,7 @@
 					var bedEndDate = moment(bedSold.endDate || roomRange.end);
 					
 					for (var date=moment(roomRange.start); date.isBefore(moment(roomRange.end), "days"); date.add(1, "days")) {
-						bedSold.dailyRates.push({"date": date.toDate(), amount: date.isBefore(bedStartDate, "days") || date.isAfter(bedEndDate, "days") ? null : dailyAmount, disabled: date.isSameOrAfter(terminationRange.end, "days")});
+						bedSold.dailyRates.push({"date": date.toDate(), rate: {amount: date.isBefore(bedStartDate, "days") || date.isAfter(bedEndDate, "days") ? null : dailyAmount}, disabled: date.isSameOrAfter(terminationRange.end, "days")});
 					}
 				}
 				
@@ -2181,7 +2192,7 @@
 				var targetMoment = moment.isMoment(targetDate) ? targetDate : moment(targetDate);
 				
 				// se è entro il limit date, non è in penale
-				if(room.totalRate.cancellationPolicy.limitDate && moment(room.totalRate.cancellationPolicy.limitDate).utcOffset((hotel.addressInfo.offset || 0)/60).isSameOrAfter(targetMoment)){
+				if(room.totalRate.cancellationPolicy.deadline && moment(room.totalRate.cancellationPolicy.deadline).utcOffset((hotel.addressInfo.offset || 0)/60).isSameOrAfter(targetMoment)){
 					amount = {finalAmount: 0, initialAmount: 0};
 					
 				} else {
@@ -2205,7 +2216,7 @@
 			};
 			
 			_.forEach(reservation.rooms,function(room){
-				penalty[room.totalRate.type].date = room.totalRate.cancellationPolicy.limitDate ||new Date();
+				penalty[room.totalRate.type].date = room.totalRate.cancellationPolicy.deadline ||new Date();
 				penalty[room.totalRate.type].amount = AmountUtils.sum(penalty[room.totalRate.type].amount, (room.totalRate.cancellationPolicy ? room.totalRate.cancellationPolicy.amount : 0));
 			});
 			
@@ -2286,7 +2297,10 @@
 		
 		$$service.isFreeCancellationPolicy = function(policy) {
 			return !policy
-					|| ((!policy.reservationPenalty || !policy.reservationPenalty.percentage) && (!policy.checkinPenalty || !policy.checkinPenalty.percentage));
+					|| ((!policy.reservationPenalty || (!policy.reservationPenalty.percentage && 
+							(!policy.reservationPenalty.chargeAmount || !policy.reservationPenalty.chargeAmount.finalAmount)))
+							&& (!policy.checkinPenalty || (!policy.checkinPenalty.percentage && 
+									(!policy.checkinPenalty.chargeAmount || !policy.checkinPenalty.chargeAmount.finalAmount))));
 		};
 
 		$$service.isNotRefundablePolicy = function(policy) {
