@@ -1998,8 +1998,10 @@
 				
 				// l'importo da addebitare non può essere inferiore a quello della
 				// policy
-				if (toChargeAmount.finalAmount < (terminatedRoom.totalRate.cancellationPolicy && terminatedRoom.totalRate.cancellationPolicy.amount ? terminatedRoom.totalRate.cancellationPolicy.amount.finalAmount : 0)) {
-					toChargeAmount = terminatedRoom.totalRate.cancellationPolicy.amount;
+				var penaltyAmount = terminatedRoom.totalRate.cancellationPolicy.reservationPenaltyAmount && terminatedRoom.totalRate.cancellationPolicy.reservationPenaltyAmount.finalAmount ? terminatedRoom.totalRate.cancellationPolicy.reservationPenaltyAmount : terminatedRoom.totalRate.cancellationPolicy.checkinPenaltyAmount;
+				
+				if (toChargeAmount.finalAmount < (penaltyAmount && penaltyAmount.finalAmount ? penaltyAmount.finalAmount : 0)) {
+					toChargeAmount = penaltyAmount;
 					
 					// tipo di addebito: penale
 					terminatedRoom.tempStatus = 'penalty';
@@ -2196,7 +2198,7 @@
 					amount = {finalAmount: 0, initialAmount: 0};
 					
 				} else {
-					amount = room.totalRate.cancellationPolicy.amount;
+					amount = room.totalRate.cancellationPolicy.reservationPenaltyAmount && room.totalRate.cancellationPolicy.reservationPenaltyAmount.finalAmount ? room.totalRate.cancellationPolicy.reservationPenaltyAmount : room.totalRate.cancellationPolicy.checkinPenaltyAmount;
 				}
 			}
 
@@ -2209,40 +2211,30 @@
 			}
 			
 			var penalty = {
-				"STANDARD":{date: null, amount: null},
-				"NOT_REFUNDABLE":{date: null, amount: null},
 				"TOTAL": [],
 				"TOTAL_AMOUNT": angular.copy(reservation.totalAmount)
 			};
 			
-			_.forEach(reservation.rooms,function(room){
-				penalty[room.totalRate.type].date = room.totalRate.cancellationPolicy.deadline ||new Date();
-				penalty[room.totalRate.type].amount = AmountUtils.sum(penalty[room.totalRate.type].amount, (room.totalRate.cancellationPolicy ? room.totalRate.cancellationPolicy.amount : 0));
-			});
-			
-			var stDate = penalty["STANDARD"].date, nrDate = penalty["NOT_REFUNDABLE"].date;
-			
-			if(stDate && !nrDate){
-				penalty["TOTAL"].push({startDate: stDate, amount: penalty["STANDARD"].amount });
-				
-			}else if(!stDate && nrDate){
-				penalty["TOTAL"].push({startDate: nrDate, amount: penalty["NOT_REFUNDABLE"].amount });
-				
-			} else if(stDate && nrDate){
-				if (stDate && nrDate && stDate.getTime() > nrDate.getTime()) {
-					penalty["TOTAL"].push(
-						{startDate: nrDate, endDate: stDate, amount: penalty["NOT_REFUNDABLE"].amount},
-						{startDate: stDate, amount: AmountUtils.sum(penalty["STANDARD"].amount, penalty["NOT_REFUNDABLE"].amount)}
-					);
-					
-				} else {
-					penalty["TOTAL"].push(
-						{startDate: stDate, endDate: nrDate, amount: penalty["STANDARD"].amount},
-						{startDate: nrDate, amount: AmountUtils.sum(penalty["STANDARD"].amount, penalty["NOT_REFUNDABLE"].amount) }
-					);
-					
+			_.forEach(reservation.rooms, function(room){
+				if (!room.totalRate.cancellationPolicy) {
+					return;
 				}
-			}
+				
+				var penaltyMoment = moment(room.totalRate.cancellationPolicy.deadline || moment().startOf("day").toDate());
+				
+				var deadlinePenalty = _.find(penalty["TOTAL"], function(p) {
+					return moment(p.startDate).isSame(penaltyMoment);
+				});
+				
+				var penaltyAmount = room.totalRate.cancellationPolicy.reservationPenaltyAmount && room.totalRate.cancellationPolicy.reservationPenaltyAmount.finalAmount ? room.totalRate.cancellationPolicy.reservationPenaltyAmount : room.totalRate.cancellationPolicy.checkinPenaltyAmount;
+				
+				if (!deadlinePenalty) {
+					penalty["TOTAL"].push({startDate: room.totalRate.cancellationPolicy.deadline || moment().startOf("day").toDate(), amount: penaltyAmount});
+				
+				} else {
+					deadlinePenalty.amount = AmountUtils.sum(deadlinePenalty.amount, penaltyAmount);
+				}
+			});
 				
 			return penalty;
 		};
